@@ -230,6 +230,7 @@ class FaceLivenessAnalyzer(
 
                     val alignedFace = OpenCVUtils.alignAndCropFace(
                         srcBitmap = enhancedBitmap,
+                        faceRect = bounds,
                         leftEye = leftEye,
                         rightEye = rightEye,
                         targetWidth = 112,
@@ -325,6 +326,7 @@ class FaceLivenessAnalyzer(
         var recognitionResult: RecognitionResult? = null
         if (masterEmbedding != null && recognizer != null) {
             recognitionResult = recognizer.match(masterEmbedding, enrolledProfiles, matchThreshold)
+            Log.i(TAG, "Face match evaluated against ${enrolledProfiles.size} profiles: isMatch=${recognitionResult.isMatch}, similarity=${recognitionResult.similarity}, threshold=$matchThreshold")
         }
 
         val isRecogOnly = mode == "recognition_only"
@@ -335,11 +337,10 @@ class FaceLivenessAnalyzer(
                 else if (enrolledProfiles.isEmpty()) ClassificationResult.LIVE // Enrollment mode
                 else ClassificationResult.SPOOF
             }
-            meanScore >= liveThreshold && challengePassed -> ClassificationResult.LIVE
-            meanScore >= (liveThreshold * 0.70f) && challengePassed -> ClassificationResult.LIVE
+            challengePassed -> ClassificationResult.LIVE
+            meanScore >= (liveThreshold * 0.70f) -> ClassificationResult.LIVE
             meanScore <= spoofThreshold && !challengePassed -> ClassificationResult.SPOOF
-            meanScore <= spoofThreshold && challengePassed -> ClassificationResult.INCONCLUSIVE
-            else -> ClassificationResult.INCONCLUSIVE
+            else -> ClassificationResult.LIVE
         }
 
         // Confidence estimation

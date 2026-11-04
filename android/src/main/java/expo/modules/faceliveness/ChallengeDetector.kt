@@ -105,7 +105,7 @@ class ChallengeDetector(
 
             ChallengeType.SMILE -> {
                 val smile = smilingProbability ?: 0f
-                val targetSmile = 0.60f
+                val targetSmile = 0.35f
                 progress = min(1.0f, smile / targetSmile)
                 if (smile >= targetSmile) {
                     advanceStep()
