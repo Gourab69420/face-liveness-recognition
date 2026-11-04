@@ -1,0 +1,9 @@
+{
+  "name": "face-liveness-recognition",
+  "platforms": ["android"],
+  "android": {
+    "modules": [
+      "expo.modules.faceliveness.ExpoFaceLivenessModule"
+    ]
+  }
+}

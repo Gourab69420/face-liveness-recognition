@@ -1,0 +1,235 @@
+import React, { useEffect, useState, useCallback, useRef } from 'react';
+import { StyleSheet, View, Text, Platform, TouchableOpacity, ActivityIndicator } from 'react-native';
+import {
+  FaceLivenessCameraProps,
+  FaceStatusEvent,
+  LivenessProgress,
+  LivenessResult,
+  FaceLivenessError,
+  CameraPermissionResponse,
+} from './types';
+import {
+  NativeFaceLivenessModule,
+  NativeFaceLivenessView,
+} from './NativeExpoFaceLiveness';
+import { FaceLivenessOverlay } from './FaceLivenessOverlay';
+
+export const FaceLivenessCamera: React.FC<FaceLivenessCameraProps> = ({
+  active = true,
+  config = {},
+  enrolledProfiles: directProfiles,
+  mode: directMode,
+  recognitionThreshold: directRecThreshold,
+  securityLevel: directSecLevel,
+  onFaceStatusChanged,
+  onProgress,
+  onResult,
+  onError,
+  onPermissionDenied,
+  showOverlay = true,
+  children,
+  style,
+}) => {
+  const [permission, setPermission] = useState<CameraPermissionResponse | null>(null);
+  const [currentFaceStatus, setCurrentFaceStatus] = useState<FaceStatusEvent>({
+    status: 'no_face',
+    yaw: 0,
+    pitch: 0,
+  });
+  const [currentProgress, setCurrentProgress] = useState<LivenessProgress | null>(null);
+
+  const requestPermission = useCallback(async () => {
+    try {
+      const res = await NativeFaceLivenessModule.requestCameraPermissionsAsync();
+      setPermission(res);
+      if (!res.granted && onPermissionDenied) {
+        onPermissionDenied();
+      }
+    } catch (err) {
+      console.error('[expo-face-liveness] Failed to request camera permission:', err);
+      onError?.({
+        code: 'PERMISSION_REQUEST_FAILED',
+        message: 'Could not request camera permission',
+      });
+    }
+  }, [onError, onPermissionDenied]);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const current = await NativeFaceLivenessModule.getCameraPermissionsAsync();
+        setPermission(current);
+        if (!current.granted && current.canAskAgain) {
+          await requestPermission();
+        }
+      } catch (e) {
+        console.warn('[expo-face-liveness] Error checking permission:', e);
+      }
+    })();
+  }, [requestPermission]);
+
+  const handleFaceStatusChanged = useCallback(
+    (event: { nativeEvent: FaceStatusEvent }) => {
+      const data = event.nativeEvent;
+      setCurrentFaceStatus(data);
+      onFaceStatusChanged?.(data);
+    },
+    [onFaceStatusChanged]
+  );
+
+  const handleProgress = useCallback(
+    (event: { nativeEvent: LivenessProgress }) => {
+      const data = event.nativeEvent;
+      setCurrentProgress(data);
+      onProgress?.(data);
+    },
+    [onProgress]
+  );
+
+  const handleResult = useCallback(
+    (event: { nativeEvent: LivenessResult }) => {
+      const data = event.nativeEvent;
+      onResult?.(data);
+    },
+    [onResult]
+  );
+
+  const handleError = useCallback(
+    (event: { nativeEvent: FaceLivenessError }) => {
+      const data = event.nativeEvent;
+      onError?.(data);
+    },
+    [onError]
+  );
+
+  if (Platform.OS !== 'android') {
+    return (
+      <View style={[styles.fallbackContainer, style]}>
+        <Text style={styles.fallbackTitle}>Platform Unsupported</Text>
+        <Text style={styles.fallbackSubtitle}>
+          The MVP version of expo-face-liveness currently targets Android on-device execution.
+        </Text>
+      </View>
+    );
+  }
+
+  if (!NativeFaceLivenessView) {
+    return (
+      <View style={[styles.fallbackContainer, style]}>
+        <Text style={styles.fallbackTitle}>Native Module Missing</Text>
+        <Text style={styles.fallbackSubtitle}>
+          expo-face-liveness requires an Android development build with CameraX and TFLite linked.
+          It does not run inside Expo Go.
+        </Text>
+      </View>
+    );
+  }
+
+  if (permission === null) {
+    return (
+      <View style={[styles.fallbackContainer, style]}>
+        <ActivityIndicator size="large" color="#3B82F6" />
+        <Text style={[styles.fallbackSubtitle, { marginTop: 16 }]}>
+          Preparing camera...
+        </Text>
+      </View>
+    );
+  }
+
+  if (!permission.granted) {
+    return (
+      <View style={[styles.fallbackContainer, style]}>
+        <Text style={styles.fallbackTitle}>Camera Permission Required</Text>
+        <Text style={styles.fallbackSubtitle}>
+          Camera access is needed on-device to perform face liveness detection.
+        </Text>
+        <TouchableOpacity style={styles.permissionButton} onPress={requestPermission}>
+          <Text style={styles.permissionButtonText}>Grant Permission</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  const {
+    liveThreshold = 0.50,
+    spoofThreshold = 0.35,
+    challenges = [],
+    customModelPath,
+    mode = directMode ?? 'liveness_and_recognition',
+    recognitionThreshold = directRecThreshold ?? 0.72,
+    enrolledProfiles = directProfiles ?? [],
+    securityLevel = directSecLevel ?? 'balanced',
+  } = config;
+
+  return (
+    <View style={[styles.container, style]}>
+      <NativeFaceLivenessView
+        style={StyleSheet.absoluteFill}
+        active={active}
+        liveThreshold={liveThreshold}
+        spoofThreshold={spoofThreshold}
+        recognitionThreshold={recognitionThreshold}
+        securityLevel={securityLevel}
+        mode={mode}
+        enrolledProfiles={enrolledProfiles}
+        challenges={challenges}
+        customModelPath={customModelPath}
+        onFaceStatusChanged={handleFaceStatusChanged}
+        onLivenessProgress={handleProgress}
+        onLivenessResult={handleResult}
+        onError={handleError}
+      />
+
+      {showOverlay && (
+        <FaceLivenessOverlay
+          faceStatus={currentFaceStatus.status}
+          progress={currentProgress}
+          activeChallenge={currentProgress?.activeChallenge ?? 'none'}
+          isAnalyzing={active}
+        />
+      )}
+
+      {children}
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#000000',
+    overflow: 'hidden',
+  },
+  fallbackContainer: {
+    flex: 1,
+    backgroundColor: '#0F172A',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  fallbackTitle: {
+    color: '#F8FAFC',
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  fallbackSubtitle: {
+    color: '#94A3B8',
+    fontSize: 14,
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 20,
+  },
+  permissionButton: {
+    backgroundColor: '#3B82F6',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+  },
+  permissionButtonText: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+    fontSize: 14,
+  },
+});
