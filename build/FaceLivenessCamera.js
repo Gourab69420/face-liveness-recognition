@@ -38,7 +38,7 @@ const react_1 = __importStar(require("react"));
 const react_native_1 = require("react-native");
 const NativeExpoFaceLiveness_1 = require("./NativeExpoFaceLiveness");
 const FaceLivenessOverlay_1 = require("./FaceLivenessOverlay");
-const FaceLivenessCamera = ({ active = true, config = {}, enrolledProfiles: directProfiles, mode: directMode, recognitionThreshold: directRecThreshold, securityLevel: directSecLevel, onFaceStatusChanged, onProgress, onResult, onError, onPermissionDenied, showOverlay = true, children, style, }) => {
+const FaceLivenessCamera = ({ active = true, config = {}, challenges: directChallenges, enrolledProfiles: directProfiles, mode: directMode, recognitionThreshold: directRecThreshold, securityLevel: directSecLevel, onFaceStatusChanged, onProgress, onResult, onError, onPermissionDenied, showOverlay = true, children, style, }) => {
     const [permission, setPermission] = (0, react_1.useState)(null);
     const [currentFaceStatus, setCurrentFaceStatus] = (0, react_1.useState)({
         status: 'no_face',
@@ -116,7 +116,18 @@ const FaceLivenessCamera = ({ active = true, config = {}, enrolledProfiles: dire
             react_1.default.createElement(react_native_1.TouchableOpacity, { style: styles.permissionButton, onPress: requestPermission },
                 react_1.default.createElement(react_native_1.Text, { style: styles.permissionButtonText }, "Grant Permission"))));
     }
-    const { liveThreshold = 0.50, spoofThreshold = 0.35, challenges = [], customModelPath, mode = directMode ?? 'liveness_and_recognition', recognitionThreshold = directRecThreshold ?? 0.72, enrolledProfiles = directProfiles ?? [], securityLevel = directSecLevel ?? 'balanced', } = config;
+    const mode = directMode ?? config.mode ?? 'liveness_and_recognition';
+    const challenges = directChallenges ??
+        config.challenges ??
+        (mode === 'liveness_and_recognition' ? ['smile'] : []);
+    const enrolledProfiles = directProfiles ?? config.enrolledProfiles ?? [];
+    const securityLevel = directSecLevel ?? config.securityLevel ?? 'balanced';
+    const recognitionThreshold = directRecThreshold ??
+        config.recognitionThreshold ??
+        (securityLevel === 'strict' ? 0.72 : securityLevel === 'relaxed' ? 0.55 : 0.62);
+    const liveThreshold = config.liveThreshold ?? (securityLevel === 'relaxed' ? 0.35 : 0.42);
+    const spoofThreshold = config.spoofThreshold ?? (securityLevel === 'relaxed' ? 0.25 : 0.35);
+    const customModelPath = config.customModelPath;
     return (react_1.default.createElement(react_native_1.View, { style: [styles.container, style] },
         react_1.default.createElement(NativeExpoFaceLiveness_1.NativeFaceLivenessView, { style: react_native_1.StyleSheet.absoluteFill, active: active, liveThreshold: liveThreshold, spoofThreshold: spoofThreshold, recognitionThreshold: recognitionThreshold, securityLevel: securityLevel, mode: mode, enrolledProfiles: enrolledProfiles, challenges: challenges, customModelPath: customModelPath, onFaceStatusChanged: handleFaceStatusChanged, onLivenessProgress: handleProgress, onLivenessResult: handleResult, onError: handleError }),
         showOverlay && (react_1.default.createElement(FaceLivenessOverlay_1.FaceLivenessOverlay, { faceStatus: currentFaceStatus.status, progress: currentProgress, activeChallenge: currentProgress?.activeChallenge ?? 'none', isAnalyzing: active })),

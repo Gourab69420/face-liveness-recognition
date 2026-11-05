@@ -212,6 +212,10 @@ export interface FaceLivenessCameraProps {
      */
     mode?: LivenessMode;
     /**
+     * Kinetic presence challenges to perform.
+     */
+    challenges?: ChallengeType[];
+    /**
      * Recognition threshold (cosine similarity).
      */
     recognitionThreshold?: number;

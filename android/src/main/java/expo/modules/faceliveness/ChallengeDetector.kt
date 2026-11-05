@@ -89,14 +89,14 @@ class ChallengeDetector(
                 val left = leftEyeOpenProb ?: 1.0f
                 val right = rightEyeOpenProb ?: 1.0f
 
-                // Phase 1: Either eye significantly closed
-                if (left < 0.40f || right < 0.40f) {
+                // Phase 1: Both eyes closed (or either eye significantly closed below 0.35)
+                if (left < 0.35f || right < 0.35f) {
                     isBlinkClosingDetected = true
                     progress = 0.6f
                 }
 
                 // Phase 2: Eyes opened back up
-                if (isBlinkClosingDetected && (left > 0.65f || right > 0.65f)) {
+                if (isBlinkClosingDetected && left > 0.65f && right > 0.65f) {
                     isBlinkClosingDetected = false
                     advanceStep()
                     return 1.0f
@@ -105,7 +105,7 @@ class ChallengeDetector(
 
             ChallengeType.SMILE -> {
                 val smile = smilingProbability ?: 0f
-                val targetSmile = 0.35f
+                val targetSmile = 0.45f
                 progress = min(1.0f, smile / targetSmile)
                 if (smile >= targetSmile) {
                     advanceStep()

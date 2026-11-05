@@ -133,6 +133,7 @@ class FaceLivenessCameraView(context: Context, appContext: AppContext) : ExpoVie
                 null
             }
         }
+        Log.i(TAG, "setEnrolledProfiles loaded ${this.enrolledProfiles.size} profile(s)")
         analyzer?.enrolledProfiles = this.enrolledProfiles
     }
 
@@ -146,15 +147,15 @@ class FaceLivenessCameraView(context: Context, appContext: AppContext) : ExpoVie
         when (level.lowercase()) {
             "relaxed" -> {
                 this.liveThreshold = 0.35f
-                this.recognitionThreshold = 0.50f
+                this.recognitionThreshold = 0.55f
             }
             "strict" -> {
                 this.liveThreshold = 0.60f
-                this.recognitionThreshold = 0.70f
+                this.recognitionThreshold = 0.72f
             }
             else -> {
                 this.liveThreshold = 0.42f
-                this.recognitionThreshold = 0.58f
+                this.recognitionThreshold = 0.62f
             }
         }
         analyzer?.matchThreshold = this.recognitionThreshold
@@ -170,6 +171,9 @@ class FaceLivenessCameraView(context: Context, appContext: AppContext) : ExpoVie
                 "smile" -> ChallengeType.SMILE
                 else -> null
             }
+        }
+        if (this.active) {
+            analyzer?.startCheck(this.challenges)
         }
     }
 
@@ -245,6 +249,9 @@ class FaceLivenessCameraView(context: Context, appContext: AppContext) : ExpoVie
                 this.matchThreshold = this@FaceLivenessCameraView.recognitionThreshold
                 this.mode = this@FaceLivenessCameraView.mode
             }
+        }
+        if (this.active) {
+            analyzer?.startCheck(this.challenges)
         }
 
         val preview = Preview.Builder().build().also {

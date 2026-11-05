@@ -330,16 +330,42 @@ class FaceLivenessAnalyzer(
         }
 
         val isRecogOnly = mode == "recognition_only"
+        val hasEnrolledProfiles = enrolledProfiles.isNotEmpty()
+        val isFaceMatch = recognitionResult?.isMatch == true
+
+        var errorCode: String? = null
 
         val resultStatus = when {
             isRecogOnly -> {
-                if (recognitionResult != null && recognitionResult.isMatch) ClassificationResult.LIVE
-                else if (enrolledProfiles.isEmpty()) ClassificationResult.LIVE // Enrollment mode
-                else ClassificationResult.SPOOF
+                if (masterEmbedding != null && masterEmbedding.isNotEmpty()) {
+                    ClassificationResult.LIVE
+                } else {
+                    errorCode = "EMBEDDING_FAILED"
+                    ClassificationResult.INCONCLUSIVE
+                }
             }
-            challengePassed -> ClassificationResult.LIVE
-            meanScore >= (liveThreshold * 0.70f) -> ClassificationResult.LIVE
-            meanScore <= spoofThreshold && !challengePassed -> ClassificationResult.SPOOF
+
+            // In check-in mode: must match enrolled profile if one is provided
+            hasEnrolledProfiles && !isFaceMatch -> {
+                errorCode = "FACE_MISMATCH"
+                Log.w(TAG, "Face recognition MISMATCH: similarity=${recognitionResult?.similarity} < threshold=$matchThreshold")
+                ClassificationResult.SPOOF
+            }
+
+            // Must pass active kinetic challenge (smile, blink, etc.)
+            !challengePassed -> {
+                errorCode = "CHALLENGE_INCOMPLETE"
+                Log.w(TAG, "Active kinetic challenge was NOT passed")
+                ClassificationResult.INCONCLUSIVE
+            }
+
+            // Must pass passive anti-spoofing score
+            meanScore <= spoofThreshold -> {
+                errorCode = "SPOOF_DETECTED"
+                Log.w(TAG, "Passive anti-spoofing failed: score=$meanScore <= threshold=$spoofThreshold")
+                ClassificationResult.SPOOF
+            }
+
             else -> ClassificationResult.LIVE
         }
 
@@ -357,6 +383,7 @@ class FaceLivenessAnalyzer(
             status = resultStatus,
             score = meanScore,
             confidence = confidence,
+            errorCode = errorCode,
             passiveScore = medianScore,
             challengePassed = challengePassed,
             duration = duration,

@@ -17,6 +17,7 @@ import { FaceLivenessOverlay } from './FaceLivenessOverlay';
 export const FaceLivenessCamera: React.FC<FaceLivenessCameraProps> = ({
   active = true,
   config = {},
+  challenges: directChallenges,
   enrolledProfiles: directProfiles,
   mode: directMode,
   recognitionThreshold: directRecThreshold,
@@ -150,16 +151,20 @@ export const FaceLivenessCamera: React.FC<FaceLivenessCameraProps> = ({
     );
   }
 
-  const {
-    liveThreshold = 0.50,
-    spoofThreshold = 0.35,
-    challenges = [],
-    customModelPath,
-    mode = directMode ?? 'liveness_and_recognition',
-    recognitionThreshold = directRecThreshold ?? 0.72,
-    enrolledProfiles = directProfiles ?? [],
-    securityLevel = directSecLevel ?? 'balanced',
-  } = config;
+  const mode = directMode ?? config.mode ?? 'liveness_and_recognition';
+  const challenges =
+    directChallenges ??
+    config.challenges ??
+    (mode === 'liveness_and_recognition' ? ['smile'] : []);
+  const enrolledProfiles = directProfiles ?? config.enrolledProfiles ?? [];
+  const securityLevel = directSecLevel ?? config.securityLevel ?? 'balanced';
+  const recognitionThreshold =
+    directRecThreshold ??
+    config.recognitionThreshold ??
+    (securityLevel === 'strict' ? 0.72 : securityLevel === 'relaxed' ? 0.55 : 0.62);
+  const liveThreshold = config.liveThreshold ?? (securityLevel === 'relaxed' ? 0.35 : 0.42);
+  const spoofThreshold = config.spoofThreshold ?? (securityLevel === 'relaxed' ? 0.25 : 0.35);
+  const customModelPath = config.customModelPath;
 
   return (
     <View style={[styles.container, style]}>
