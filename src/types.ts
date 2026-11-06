@@ -323,6 +323,24 @@ export interface FaceLivenessCameraProps {
   instructionText?: string;
 
   /**
+   * Whether to randomize challenges automatically on each session.
+   * Default: false (or true if challenges is omitted in challenge mode)
+   */
+  randomizeChallenges?: boolean;
+
+  /**
+   * Opacity of the animated biometric hologram silhouette overlaid on the face display (0.1 to 1.0).
+   * Default: 0.40
+   */
+  hologramOpacity?: number;
+
+  /**
+   * Whether to render the animated biometric hologram silhouette on top of the face display.
+   * Default: true
+   */
+  showHologram?: boolean;
+
+  /**
    * Optional custom overlay to render on top of the camera preview.
    */
   children?: React.ReactNode;

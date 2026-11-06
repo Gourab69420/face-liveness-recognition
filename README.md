@@ -4,50 +4,36 @@
 [![Platform: Android](https://img.shields.io/badge/Platform-Android-green.svg)](https://developer.android.com)
 [![Expo: SDK 51+](https://img.shields.io/badge/Expo-SDK%2051%2B-black.svg)](https://expo.dev)
 
-**Android-first, 100% on-device face recognition, active & passive liveness detection, and anti-spoofing for React Native apps made with Expo.**
+Android-first, 100% on-device face recognition, active and passive anti-spoofing, and liveness detection for React Native and Expo applications.
 
-Designed for attendance systems, HRMS, digital onboarding, user verification, and secure app unlock — completely free of costly third-party cloud APIs.
-
----
-
-## 🌟 Key Capabilities
-
-* **On-Device Face Recognition (MobileFaceNet):** Extracts 192-dimensional $L_2$-normalized facial feature embeddings (`||v|| = 1.0`) with instant on-device cosine similarity matching.
-* **OpenCV 4.9.0 Image Processing:** 
-  * **CLAHE Illumination Equalization:** Automatically balances harsh room lighting, backlighting, and shadows across the face.
-  * **5-Point Landmark Affine Alignment:** Uses eye centers to rotate and crop the face into a canonical 112×112 patch.
-  * **Face Quality Assessment (FQA):** Evaluates sharpness via Laplacian variance to reject motion-blurred or underexposed frames.
-* **Passive Anti-Spoofing (MiniFASNetV2):** Neural network detection of physical presentation attacks (printed paper photos, cardboard cutouts, digital replay screens).
-* **Hardware ISP Smoothing Override (`Camera2Interop`):** Disables aggressive front-camera beauty smoothing and noise reduction to preserve natural skin pore textures.
-* **Active Kinetic Challenges:** Prompts users to **Smile 😊**, **Blink 👁️**, **Turn Left 👈**, **Turn Right 👉**, or **Nod** to verify real-time 3D presence.
-* **Enterprise Security & Database Ready:**
-  * **One-Time Enrollment Guard:** Locks biometric registration once completed; requires admin permission token for re-enrollment.
-  * **Portable Binary Face Tokens:** Compresses 192 floats into an encrypted 1,024-character Base64 token (768 bytes) for seamless cross-device login and matching.
-  * **Anti-Replay Proof Generator:** Cryptographically signs check-in requests to prevent API tampering via Postman or scripts.
+Zero cloud dependencies. Zero recurring API fees. Raw biometric data never leaves the user device.
 
 ---
 
-## 🔒 Privacy & Compliance
+## Architecture Overview
 
-* **Zero Cloud Biometrics:** Raw camera frames and face crops are never uploaded, stored on disk, or transmitted.
-* **Ephemeral Processing:** Frames are processed transiently in device RAM and recycled immediately.
-* **Irreversible Embeddings:** MobileFaceNet vectors are mathematical abstractions — a 192-number vector cannot be reverse-engineered into a person's photo.
+* **On-Device Face Recognition (MobileFaceNet):** Computes 192-dimensional L2-normalized facial embeddings with instant cosine similarity matching.
+* **Passive Anti-Spoofing (MiniFASNetV2):** Deep neural network analysis detecting 2D printed photos, cardboard cutouts, and digital screen replay attacks.
+* **OpenCV 4.9.0 Image Processing:** Automated CLAHE illumination normalization, landmark-guided affine face alignment, and Laplacian blur detection.
+* **Active Kinetic Challenges:** Dynamic prompts (smile, blink, head turn left, head turn right) confirming real-time 3D presence.
+* **Production UI Overlay:** Centered translucent biometric silhouette hologram over the face preview with dynamic color transitions and zero cartoonish emojis.
+* **Tamper-Proof Biometric Proofs:** Cryptographically signed attestation tokens (HMAC-SHA256) with anti-replay timestamps.
 
 ---
 
-## 📦 Installation
+## Installation
 
-In your Expo project:
+### 1. Install the Package
+
+In your Expo or React Native project:
 
 ```bash
 npx expo install face-liveness-recognition expo-modules-core
 ```
 
-> **Note:** Because this module runs native C++ neural runtimes (OpenCV, CameraX, LiteRT/TensorFlow Lite), **it requires an Expo development build (`npx expo run:android` or EAS Build)**. It does not run inside Expo Go.
+> **Important:** This library uses native C++ runtimes (OpenCV, CameraX, LiteRT/TensorFlow Lite). It requires an Android Development Build (`npx expo run:android` or EAS Build). It does not run inside standard Expo Go.
 
----
-
-## ⚙️ Expo Configuration (`app.json`)
+### 2. Configure Expo Plugin (`app.json`)
 
 Add the plugin to your `app.json`:
 
@@ -60,7 +46,7 @@ Add the plugin to your `app.json`:
       [
         "face-liveness-recognition",
         {
-          "cameraPermission": "Allow $(PRODUCT_NAME) to use the camera for face recognition and liveness check."
+          "cameraPermission": "Allow $(PRODUCT_NAME) to access the camera for biometric verification."
         }
       ]
     ],
@@ -71,15 +57,309 @@ Add the plugin to your `app.json`:
 }
 ```
 
+Prebuild or run your development build:
+
+```bash
+npx expo run:android
+```
+
 ---
 
-## 📱 Frontend Integration (React Native / Expo)
+## 5-Minute Quickstart
 
-### 1. Daily Check-In / Punch-In Flow
+Here is the minimal working implementation to scan a face and check liveness:
 
 ```tsx
-import React, { useState, useEffect } from 'react';
-import { View, Alert } from 'react-native';
+import React from 'react';
+import { View, StyleSheet, Alert } from 'react-native';
+import { FaceLivenessCamera, LivenessResult } from 'face-liveness-recognition';
+
+export default function LivenessScreen() {
+  const handleResult = (result: LivenessResult) => {
+    if (result.status === 'live' && result.challengePassed) {
+      Alert.alert('Verification Succeeded', 'Genuine live face confirmed.');
+    } else {
+      Alert.alert('Verification Failed', `Status: ${result.status}`);
+    }
+  };
+
+  return (
+    <View style={styles.container}>
+      <FaceLivenessCamera
+        mode="liveness_only"
+        randomizeChallenges={true}
+        onResult={handleResult}
+      />
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#000000',
+  },
+});
+```
+
+---
+
+## Customizing the Frontend UI
+
+### Option A: Using the Built-In Production Overlay
+
+The built-in overlay includes:
+1. Centered biometric oval reticle aligned to front camera framing.
+2. Animated translucent silhouette hologram in the center that guides user movement.
+3. Smooth color transition to emerald green (`#10B981`) upon verification with no checkmark or tick badge.
+4. Laser scan beam and corner target brackets.
+
+You can customize its appearance via props:
+
+```tsx
+<FaceLivenessCamera
+  showOverlay={true}
+  showHologram={true}
+  hologramOpacity={0.25} // Adjust transparency: 0.1 (faint) to 1.0 (solid)
+  isVerified={isSuccess} // Turns reticle and hologram green
+  instructionText={isSuccess ? 'ACCESS GRANTED' : undefined}
+  onResult={handleResult}
+/>
+```
+
+### Option B: Building a Completely Custom UI
+
+To replace the stock UI with your company branding, set `showOverlay={false}` and place your own React Native components inside `<FaceLivenessCamera>`:
+
+```tsx
+import React, { useState } from 'react';
+import { View, Text, StyleSheet } from 'react-native';
+import { FaceLivenessCamera, FaceStatusEvent, LivenessResult } from 'face-liveness-recognition';
+
+export default function CustomUIScreen() {
+  const [hint, setHint] = useState('Center your face');
+
+  const handleFaceStatus = (event: FaceStatusEvent) => {
+    switch (event.status) {
+      case 'face_too_far':
+        setHint('Move closer to the camera');
+        break;
+      case 'face_too_close':
+        setHint('Move slightly back');
+        break;
+      case 'multiple_faces':
+        setHint('Only one person permitted');
+        break;
+      case 'face_detected':
+        setHint('Face detected. Hold still...');
+        break;
+      default:
+        setHint('Position your face in view');
+    }
+  };
+
+  return (
+    <View style={styles.container}>
+      <FaceLivenessCamera
+        showOverlay={false}
+        onFaceStatusChanged={handleFaceStatus}
+        onResult={(result: LivenessResult) => console.log('Result:', result)}
+      >
+        {/* Your custom UI elements rendered on top of camera stream */}
+        <View style={styles.customHud}>
+          <Text style={styles.customText}>{hint}</Text>
+        </View>
+      </FaceLivenessCamera>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#000' },
+  customHud: {
+    position: 'absolute',
+    bottom: 50,
+    alignSelf: 'center',
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 20,
+  },
+  customText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+});
+```
+
+---
+
+## Configuring Thresholds and Options
+
+### 1. Recognition Sensitivity Threshold (`recognitionThreshold`)
+
+Controls the minimum cosine similarity ($0.0$ to $1.0$) required to declare a biometric match against an enrolled profile:
+
+```tsx
+<FaceLivenessCamera
+  recognitionThreshold={0.72} // Recommended default
+/>
+```
+
+* `0.65`: Forgiving. Ideal for outdoor conditions, varying lighting, or users wearing hats/glasses.
+* `0.72`: Balanced. Standard corporate attendance and workplace check-in recommendation.
+* `0.80+`: High security. Recommended for financial transactions or privileged access control.
+
+### 2. Preset Security Levels (`securityLevel`)
+
+Select preset combinations for convenience:
+
+```tsx
+<FaceLivenessCamera securityLevel="balanced" />
+```
+
+* `relaxed`: Recognition threshold 0.50, anti-spoof threshold 0.35. Fast capture.
+* `balanced`: Recognition threshold 0.58, anti-spoof threshold 0.40. Standard production default.
+* `strict`: Recognition threshold 0.68, anti-spoof threshold 0.50. Enhanced anti-spoof scrutiny.
+
+### 3. Fine-Grained Pipeline Options (`config`)
+
+Fine-tune native engine parameters directly:
+
+```tsx
+<FaceLivenessCamera
+  config={{
+    liveThreshold: 0.58,    // Anti-spoof network threshold
+    spoofThreshold: 0.58,   // Replay / fake surface rejection threshold
+    sampleIntervalMs: 200,  // Milliseconds between processed video frames
+    requiredSamples: 4,     // Consecutive verified frames required for consensus
+  }}
+/>
+```
+
+---
+
+## Randomizing Kinetic Challenge Prompts
+
+To prevent presentation attacks recorded on video screens, you can randomize kinetic presence challenges.
+
+### Automatic Randomization
+
+Pass `randomizeChallenges={true}`. The component picks a challenge at random from the pool for each session:
+
+```tsx
+<FaceLivenessCamera
+  mode="liveness_and_recognition"
+  randomizeChallenges={true}
+  onResult={handleResult}
+/>
+```
+
+### Manual / Pool Selection
+
+You can also specify challenge pools manually or use helper utilities:
+
+```tsx
+import {
+  FaceLivenessCamera,
+  getRandomChallenge,
+  getRandomChallenges,
+} from 'face-liveness-recognition';
+
+// Option 1: Pick 1 random challenge on mount
+const singleChallenge = [getRandomChallenge()];
+
+// Option 2: Pick 2 random challenges in sequence
+const multiChallenges = getRandomChallenges(2);
+
+// Option 3: Explicit challenge list
+const explicitChallenges = ['turn_head_left', 'smile'];
+
+<FaceLivenessCamera challenges={explicitChallenges} />
+```
+
+Available challenge types:
+* `'smile'`: Verifies natural mouth arc expansion.
+* `'blink'`: Verifies eye aspect ratio contraction.
+* `'turn_head_left'`: Verifies yaw rotation to user's left.
+* `'turn_head_right'`: Verifies yaw rotation to user's right.
+* `'nod'`: Verifies pitch elevation up and down.
+
+---
+
+## Complete Production Workflows
+
+### 1. One-Time Face Enrollment Flow
+
+Capture a user's face, extract the 192-dimensional vector, pack it into an encrypted token, and store it in your database:
+
+```tsx
+import React, { useState } from 'react';
+import { View, StyleSheet, Alert } from 'react-native';
+import {
+  FaceLivenessCamera,
+  LivenessResult,
+  BiometricEnrollmentGuard,
+} from 'face-liveness-recognition';
+
+export default function EnrollmentScreen({ user, adminUnlockToken }) {
+  const [isDone, setIsDone] = useState(false);
+
+  // Check enrollment permission
+  const check = BiometricEnrollmentGuard.canEnroll(user, adminUnlockToken);
+  if (!check.allowed) {
+    Alert.alert('Enrollment Locked', check.reason);
+    return null;
+  }
+
+  const handleEnrollResult = async (result: LivenessResult) => {
+    if (result.embedding && result.embedding.length === 192) {
+      setIsDone(true);
+
+      // Pack and encrypt the 192-float array into a compact Base64 token
+      const payload = BiometricEnrollmentGuard.createEnrollmentPayload(
+        user.id,
+        user.name,
+        result.embedding,
+        'YOUR_APP_SECRET_KEY'
+      );
+
+      // Send to your backend API to store in SQL or MongoDB
+      await fetch('https://api.yourapp.com/biometrics/enroll', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      Alert.alert('Success', 'Biometric profile registered.');
+    }
+  };
+
+  return (
+    <View style={styles.container}>
+      <FaceLivenessCamera
+        mode="recognition_only"
+        isVerified={isDone}
+        instructionText={isDone ? 'PROFILE ENROLLED' : undefined}
+        onResult={handleEnrollResult}
+      />
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#000' },
+});
+```
+
+### 2. Daily Verification / Attendance Punch-In Flow
+
+Match the live camera feed against the enrolled user token stored in your backend:
+
+```tsx
+import React, { useState } from 'react';
+import { View, StyleSheet, Alert } from 'react-native';
 import {
   FaceLivenessCamera,
   LivenessResult,
@@ -87,30 +367,33 @@ import {
   BiometricProofGenerator,
 } from 'face-liveness-recognition';
 
-export default function CheckInScreen({ user, userAuthToken }) {
-  // 1. Prepare user's profile fetched from your database
+export default function CheckInScreen({ currentUser, userAuthToken }) {
+  const [verified, setVerified] = useState(false);
+
+  // Prepare profile containing decrypted 192-D embedding
   const enrolledProfiles = [
     prepareProfileForDevice(
-      user.id,
-      user.name,
-      user.encryptedFaceTokenFromDB,
-      'YOUR_ENTERPRISE_SECRET_KEY'
+      currentUser.id,
+      currentUser.name,
+      currentUser.faceTokenFromDB,
+      'YOUR_APP_SECRET_KEY'
     ),
   ];
 
   const handleResult = async (result: LivenessResult) => {
-    // 2. Check if face matched the enrolled user and physical liveness passed
     if (result.isMatch && result.status === 'live' && result.challengePassed) {
-      // 3. Generate cryptographic attestation proof (prevents API spoofing)
+      setVerified(true);
+
+      // Generate signed tamper-proof cryptographic payload
       const proof = BiometricProofGenerator.generateProof(
-        user.id,
+        currentUser.id,
         result,
-        'YOUR_ENTERPRISE_SECRET_KEY',
+        'YOUR_APP_SECRET_KEY',
         'smile'
       );
 
-      // 4. Send verified check-in to your backend API
-      const res = await fetch('https://api.yourbackend.com/api/attendance/check-in', {
+      // Post check-in to your backend
+      const res = await fetch('https://api.yourapp.com/attendance/check-in', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -120,135 +403,38 @@ export default function CheckInScreen({ user, userAuthToken }) {
       });
 
       if (res.ok) {
-        Alert.alert('Verified!', `Welcome, ${result.matchedUserName || user.name}!`);
+        Alert.alert('Verified', `Welcome, ${result.matchedUserName || currentUser.name}!`);
       }
     } else {
-      Alert.alert('Verification Failed', 'Face did not match or motion challenge failed.');
+      Alert.alert('Verification Failed', 'Identity mismatch or spoof detected.');
     }
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#000' }}>
+    <View style={styles.container}>
       <FaceLivenessCamera
         mode="liveness_and_recognition"
-        securityLevel="balanced"
+        randomizeChallenges={true}
         enrolledProfiles={enrolledProfiles}
         recognitionThreshold={0.72}
-        config={{
-          challenges: ['smile'], // Fast and natural for check-in
-        }}
+        isVerified={verified}
+        instructionText={verified ? 'VERIFIED' : undefined}
         onResult={handleResult}
       />
     </View>
   );
 }
-```
 
----
-
-### 2. One-Time Enrollment Flow (with Admin Lock)
-
-```tsx
-import React from 'react';
-import { View, Alert } from 'react-native';
-import {
-  FaceLivenessCamera,
-  LivenessResult,
-  BiometricEnrollmentGuard,
-} from 'face-liveness-recognition';
-
-export default function EnrollmentScreen({ user, adminUnlockToken }) {
-  // Verify user is permitted to enroll (not locked without admin token)
-  const eligibility = BiometricEnrollmentGuard.canEnroll(user, adminUnlockToken);
-  if (!eligibility.allowed) {
-    Alert.alert('Enrollment Locked', eligibility.reason);
-    return null;
-  }
-
-  const handleEnrollResult = async (result: LivenessResult) => {
-    if (result.embedding && result.embedding.length === 192) {
-      // 1. Pack and encrypt the 192-D embedding
-      const payload = BiometricEnrollmentGuard.createEnrollmentPayload(
-        user.id,
-        user.name,
-        result.embedding,
-        'YOUR_ENTERPRISE_SECRET_KEY'
-      );
-
-      // 2. Save encrypted face token to your backend database
-      await fetch('https://api.yourbackend.com/api/biometrics/enroll', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-
-      Alert.alert('Success', 'Face profile enrolled and locked successfully!');
-    }
-  };
-
-  return (
-    <View style={{ flex: 1, backgroundColor: '#000' }}>
-      <FaceLivenessCamera
-        mode="recognition_only"
-        onResult={handleEnrollResult}
-      />
-    </View>
-  );
-}
-```
-
----
-
-## 🗄️ Backend & Database Integration
-
-### 1. Database Schema
-
-#### PostgreSQL
-```sql
-CREATE TABLE user_biometrics (
-    user_id VARCHAR(64) PRIMARY KEY,
-    user_name VARCHAR(128) NOT NULL,
-    face_token VARCHAR(1024) NOT NULL, -- Encrypted compact binary Base64 (768 bytes)
-    is_locked BOOLEAN DEFAULT TRUE,    -- Prevents re-recording without admin unlock
-    enrolled_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
-CREATE TABLE attendance_logs (
-    id SERIAL PRIMARY KEY,
-    user_id VARCHAR(64) REFERENCES user_biometrics(user_id),
-    timestamp TIMESTAMP WITH TIME ZONE NOT NULL,
-    similarity NUMERIC(5, 4) NOT NULL,
-    challenge_type VARCHAR(32) NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-```
-
-#### MySQL
-```sql
-CREATE TABLE user_biometrics (
-    user_id VARCHAR(64) PRIMARY KEY,
-    user_name VARCHAR(128) NOT NULL,
-    face_token VARCHAR(1024) NOT NULL,
-    is_locked TINYINT(1) DEFAULT 1,
-    enrolled_at DATETIME DEFAULT CURRENT_TIMESTAMP
-);
-```
-
-#### MongoDB
-```javascript
-const UserBiometricSchema = new mongoose.Schema({
-  userId: { type: String, required: true, unique: true },
-  userName: { type: String, required: true },
-  faceToken: { type: String, required: true }, // Encrypted compact base64
-  isLocked: { type: Boolean, default: true },
-  enrolledAt: { type: Date, default: Date.now },
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#000' },
 });
 ```
 
 ---
 
-### 2. Backend Verification Endpoint (Node.js / Express / Next.js)
+## Backend Verification Endpoint
+
+On your server (Node.js, Express, Next.js), verify incoming biometric check-in proofs:
 
 ```ts
 import express from 'express';
@@ -257,49 +443,55 @@ import { BiometricProofGenerator } from 'face-liveness-recognition';
 const app = express();
 app.use(express.json());
 
-const SHARED_SECRET = process.env.BIOMETRIC_HMAC_SECRET || 'YOUR_ENTERPRISE_SECRET_KEY';
+const SECRET = process.env.BIOMETRIC_SECRET || 'YOUR_APP_SECRET_KEY';
 
-// Punch-In / Authentication Endpoint
-app.post('/api/attendance/check-in', async (req, res) => {
-  const proof = req.body; // BiometricAuthProof
+app.post('/attendance/check-in', async (req, res) => {
+  const proof = req.body;
 
-  // 1. Verify proof authenticity (checks signature, anti-replay nonce, and max age)
-  const verification = BiometricProofGenerator.verifyProof(proof, SHARED_SECRET, 60000); // 60s max age
+  // Validate cryptographic signature, timestamp age (max 60 seconds), and replay nonce
+  const verification = BiometricProofGenerator.verifyProof(proof, SECRET, 60000);
 
   if (!verification.valid) {
     return res.status(403).json({ error: verification.reason });
   }
 
-  // 2. Record attendance in database
+  // Record attendance in your database
   await db.attendance.create({
     userId: proof.userId,
-    timestamp: new Date(proof.timestamp),
     similarity: proof.similarity,
-    challengeType: proof.challengeType,
-    status: 'PRESENT',
+    challenge: proof.challengeType,
+    timestamp: new Date(proof.timestamp),
   });
 
-  return res.json({ success: true, message: 'Check-in recorded' });
+  return res.json({ success: true, message: 'Check-in confirmed.' });
 });
 ```
 
 ---
 
-## 🧩 API Reference
+## API Reference
 
-### `<FaceLivenessCamera />`
+### `<FaceLivenessCamera />` Props
 
 | Prop | Type | Default | Description |
 |---|---|---|---|
-| `active` | `boolean` | `true` | When true, analysis and inference run. When false, shows camera preview only. |
+| `active` | `boolean` | `true` | Starts or pauses camera analysis and neural inference. |
 | `mode` | `'liveness_and_recognition' \| 'recognition_only' \| 'liveness_only'` | `'liveness_and_recognition'` | Operating mode. |
 | `securityLevel` | `'relaxed' \| 'balanced' \| 'strict'` | `'balanced'` | Preset threshold configurations. |
-| `enrolledProfiles` | `EnrolledProfile[]` | `[]` | List of profiles containing 192-D embeddings to match against. |
-| `recognitionThreshold`| `number` | `0.72` | Minimum cosine similarity (0.0 – 1.0) required for a positive identity match. |
-| `config` | `FaceLivenessConfig` | `{}` | Fine-grained controls (`challenges`, `sampleIntervalMs`, `requiredSamples`). |
-| `onResult` | `(result: LivenessResult) => void` | `undefined` | Callback fired when analysis concludes. |
-| `onFaceStatusChanged` | `(event: FaceStatusEvent) => void` | `undefined` | Real-time face tracking event (`face_detected`, `face_blurry`, `face_too_far`, etc.). |
-| `showOverlay` | `boolean` | `true` | Renders the default UI overlay (face oval guide, prompts, and progress indicator). |
+| `recognitionThreshold` | `number` | `0.72` | Minimum cosine similarity ($0.0$ to $1.0$) for a positive match. |
+| `randomizeChallenges` | `boolean` | `false` | Automatically randomizes kinetic challenge prompts on session start. |
+| `challenges` | `ChallengeType[]` | `['smile']` | Explicit list of kinetic challenges to verify. |
+| `enrolledProfiles` | `EnrolledProfile[]` | `[]` | User profiles with 192-D embeddings for 1-to-1 or 1-to-N matching. |
+| `showOverlay` | `boolean` | `true` | Renders the built-in biometric overlay. Set to `false` for custom UI. |
+| `showHologram` | `boolean` | `true` | Renders the animated biometric silhouette in the middle of the screen. |
+| `hologramOpacity` | `number` | `0.38` | Opacity of the animated biometric silhouette ($0.1$ to $1.0$). |
+| `isVerified` | `boolean` | `false` | When `true`, transitions the reticle and silhouette to green (`#10B981`). |
+| `instructionText` | `string` | `undefined` | Custom text prompt displayed in the bottom HUD card. |
+| `config` | `FaceLivenessConfig` | `{}` | Low-level native controls (`liveThreshold`, `sampleIntervalMs`, etc.). |
+| `onResult` | `(result: LivenessResult) => void` | `undefined` | Fires when liveness and/or recognition completes. |
+| `onFaceStatusChanged` | `(event: FaceStatusEvent) => void` | `undefined` | Real-time face tracking updates (`face_detected`, `face_too_far`, etc.). |
+| `onProgress` | `(progress: LivenessProgress) => void` | `undefined` | Fires as sample frames are processed. |
+| `onError` | `(error: FaceLivenessError) => void` | `undefined` | Fires when an operational error occurs. |
 
 ---
 
@@ -308,41 +500,35 @@ app.post('/api/attendance/check-in', async (req, res) => {
 ```ts
 interface LivenessResult {
   status: 'live' | 'spoof' | 'inconclusive';
-  score: number;             // Anti-spoofing score (0.0 - 1.0)
+  score: number;             // Anti-spoofing confidence score (0.0 to 1.0)
   confidence: number;        // Statistical consistency metric
   isMatch?: boolean;         // True if face matched an enrolled profile
   matchedUserId?: string;    // ID of the matched profile
   matchedUserName?: string;  // Name of the matched profile
   similarity?: number;       // Cosine similarity score (e.g. 0.94 = 94%)
   embedding?: number[];      // 192-D Float array (normalized master vector)
-  challengePassed: boolean;  // True if the active motion challenge passed
-  durationMs: number;        // Duration in milliseconds
+  challengePassed: boolean;  // True if kinetic motion challenge passed
+  durationMs: number;        // Processing duration in milliseconds
+  timestamp: number;         // Epoch timestamp
 }
 ```
 
 ---
 
-### Security Helpers
+## Troubleshooting & FAQ
 
-* **`packEmbedding(embedding: number[]): string`**  
-  Packs a 192-float array into a 1,024-character Base64 binary string.
-* **`unpackEmbedding(base64: string): number[]`**  
-  Restores a 192-float array from binary Base64.
-* **`encryptToken(token: string, secretKey: string): string`**  
-  Encrypts the face token with your secret key before database persistence.
-* **`decryptToken(cipherText: string, secretKey: string): string`**  
-  Decrypts an encrypted face token.
-* **`prepareProfileForDevice(id, name, encryptedToken, key): EnrolledProfile`**  
-  Prepares a profile fetched from the database for on-device 1-to-1 matching on any device.
-* **`BiometricProofGenerator.generateProof(...)`**  
-  Generates an anti-replay, signed attestation proof for backend verification.
-* **`BiometricProofGenerator.verifyProof(proof, secretKey, maxAgeMs)`**  
-  Validates attestation signatures on the server side.
+* **Does it work on iOS?**  
+  The current engine is optimized for Android on-device neural runtimes using CameraX, OpenCV 4.9.0, and LiteRT. iOS support is planned for a future release.
+* **Why does Expo Go crash or show Native Module Missing?**  
+  Expo Go does not include custom native C++ libraries. Run `npx expo run:android` to create a development build.
+* **Camera permission denied?**  
+  Ensure `app.json` contains the plugin configuration and camera permission declaration. The component automatically requests camera permission on mount if not yet granted.
+* **False spoof rejections?**  
+  Ensure adequate frontal room lighting and avoid strong backlights behind the user. If testing in low-light environments, use `securityLevel="relaxed"` or adjust `config={{ liveThreshold: 0.50 }}`.
 
 ---
 
-## 📄 License & Attribution
+## License
 
-* **Package:** MIT License.
-* **Models:** MiniFASNetV2 & MobileFaceNet (Apache License 2.0).
-* **Native Dependencies:** OpenCV (Apache-2.0), Google ML Kit, Android CameraX, TensorFlow Lite / LiteRT.
+MIT License.
+Protected under open-source terms. MiniFASNet and MobileFaceNet weights licensed under Apache License 2.0.

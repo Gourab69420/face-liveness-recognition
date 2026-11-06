@@ -12,6 +12,36 @@ export const CHALLENGE_INSTRUCTIONS: Record<ChallengeType, string> = {
 };
 
 /**
+ * Standard pool of kinetic challenges for anti-spoof verification.
+ */
+export const DEFAULT_CHALLENGE_POOL: ChallengeType[] = [
+  'turn_head_left',
+  'turn_head_right',
+  'smile',
+  'blink',
+];
+
+/**
+ * Returns a randomized challenge from the pool.
+ * Guarantees unpredictable prompts on every verification session.
+ */
+export function getRandomChallenge(pool: ChallengeType[] = DEFAULT_CHALLENGE_POOL): ChallengeType {
+  const index = Math.floor(Math.random() * pool.length);
+  return pool[index];
+}
+
+/**
+ * Returns an array of N unique randomized challenges.
+ */
+export function getRandomChallenges(
+  count: number = 1,
+  pool: ChallengeType[] = DEFAULT_CHALLENGE_POOL
+): ChallengeType[] {
+  const shuffled = [...pool].sort(() => 0.5 - Math.random());
+  return shuffled.slice(0, Math.min(count, pool.length));
+}
+
+/**
  * Returns prompt guidance for a specific challenge step.
  */
 export function getChallengeInstruction(challenge: ChallengeType | 'none'): string {

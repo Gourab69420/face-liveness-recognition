@@ -7,12 +7,14 @@ import {
   LivenessResult,
   FaceLivenessError,
   CameraPermissionResponse,
+  ChallengeType,
 } from './types';
 import {
   NativeFaceLivenessModule,
   NativeFaceLivenessView,
 } from './NativeExpoFaceLiveness';
 import { FaceLivenessOverlay } from './FaceLivenessOverlay';
+import { getRandomChallenge } from './challenges';
 
 export const FaceLivenessCamera: React.FC<FaceLivenessCameraProps> = ({
   active = true,
@@ -30,6 +32,9 @@ export const FaceLivenessCamera: React.FC<FaceLivenessCameraProps> = ({
   showOverlay = true,
   isVerified = false,
   instructionText,
+  randomizeChallenges = false,
+  hologramOpacity = 0.38,
+  showHologram = true,
   children,
   style,
 }) => {
@@ -155,10 +160,15 @@ export const FaceLivenessCamera: React.FC<FaceLivenessCameraProps> = ({
 
   const cfg = (config || {}) as any;
   const mode = directMode ?? cfg.mode ?? 'liveness_and_recognition';
+  const randomChallengeRef = useRef<ChallengeType>(getRandomChallenge());
   const challenges =
     directChallenges ??
     cfg.challenges ??
-    (mode === 'liveness_and_recognition' ? ['smile'] : []);
+    (randomizeChallenges
+      ? [randomChallengeRef.current]
+      : mode === 'liveness_and_recognition'
+      ? ['smile']
+      : []);
   const enrolledProfiles = directProfiles ?? cfg.enrolledProfiles ?? [];
   const securityLevel = directSecLevel ?? cfg.securityLevel ?? 'balanced';
   const recognitionThreshold =
@@ -196,6 +206,8 @@ export const FaceLivenessCamera: React.FC<FaceLivenessCameraProps> = ({
           isAnalyzing={active}
           isVerified={isVerified}
           instructionText={instructionText}
+          showHologram={showHologram}
+          hologramOpacity={hologramOpacity}
         />
       )}
 

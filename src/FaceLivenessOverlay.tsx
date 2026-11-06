@@ -17,25 +17,33 @@ export interface FaceLivenessOverlayProps {
   instructionText?: string;
   isAnalyzing?: boolean;
   isVerified?: boolean;
+  showHologram?: boolean;
+  hologramOpacity?: number;
 }
 
 /**
- * High-tech animated white biometric cartoon/silhouette guide.
- * Animates head turning, smiling, and blinking based on current challenge,
- * and turns emerald green upon successful verification.
+ * High-tech animated white biometric cartoon / hologram silhouette.
+ * Positioned in the middle of the screen directly on top of the face display,
+ * with subtle translucent opacity. When verified, smoothly turns emerald green
+ * (no check or tick required).
  */
 const BiometricPromptAvatar: React.FC<{
   challenge: ChallengeType | 'none';
   isVerified?: boolean;
   faceStatus?: FaceStatus;
-}> = ({ challenge, isVerified = false, faceStatus = 'face_detected' }) => {
+  hologramOpacity?: number;
+}> = ({
+  challenge,
+  isVerified = false,
+  faceStatus = 'face_detected',
+  hologramOpacity = 0.38,
+}) => {
   // Animation values
   const headRotateAnim = useRef(new Animated.Value(0)).current;
   const headTranslateX = useRef(new Animated.Value(0)).current;
   const mouthCurveAnim = useRef(new Animated.Value(0)).current;
   const eyeBlinkAnim = useRef(new Animated.Value(1)).current;
   const arrowPulseAnim = useRef(new Animated.Value(0)).current;
-  const scanLineAnim = useRef(new Animated.Value(0)).current;
 
   // Head turn animation loop
   useEffect(() => {
@@ -48,17 +56,17 @@ const BiometricPromptAvatar: React.FC<{
         Animated.sequence([
           Animated.timing(headRotateAnim, {
             toValue: -1,
-            duration: 800,
+            duration: 850,
             easing: Easing.inOut(Easing.ease),
             useNativeDriver: true,
           }),
           Animated.timing(headRotateAnim, {
             toValue: 0,
-            duration: 600,
+            duration: 650,
             easing: Easing.inOut(Easing.ease),
             useNativeDriver: true,
           }),
-          Animated.delay(400),
+          Animated.delay(350),
         ])
       );
       animLoop.start();
@@ -69,17 +77,17 @@ const BiometricPromptAvatar: React.FC<{
         Animated.sequence([
           Animated.timing(headRotateAnim, {
             toValue: 1,
-            duration: 800,
+            duration: 850,
             easing: Easing.inOut(Easing.ease),
             useNativeDriver: true,
           }),
           Animated.timing(headRotateAnim, {
             toValue: 0,
-            duration: 600,
+            duration: 650,
             easing: Easing.inOut(Easing.ease),
             useNativeDriver: true,
           }),
-          Animated.delay(400),
+          Animated.delay(350),
         ])
       );
       animLoop.start();
@@ -157,7 +165,7 @@ const BiometricPromptAvatar: React.FC<{
     if (challenge === 'blink') {
       loop = Animated.loop(
         Animated.sequence([
-          Animated.delay(900),
+          Animated.delay(1000),
           Animated.timing(eyeBlinkAnim, {
             toValue: 0.1,
             duration: 150,
@@ -179,168 +187,134 @@ const BiometricPromptAvatar: React.FC<{
     return () => loop?.stop();
   }, [challenge, eyeBlinkAnim]);
 
-  // Scanning radar line loop
-  useEffect(() => {
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(scanLineAnim, {
-          toValue: 1,
-          duration: 1400,
-          easing: Easing.inOut(Easing.sin),
-          useNativeDriver: true,
-        }),
-        Animated.timing(scanLineAnim, {
-          toValue: 0,
-          duration: 1400,
-          easing: Easing.inOut(Easing.sin),
-          useNativeDriver: true,
-        }),
-      ])
-    );
-    loop.start();
-    return () => loop.stop();
-  }, [scanLineAnim]);
-
-  // Dynamic colors
+  // Dynamic colors & translucent opacity
   const primaryColor = isVerified ? '#10B981' : '#FFFFFF';
-  const glowBorderColor = isVerified
-    ? 'rgba(16, 185, 129, 0.45)'
-    : 'rgba(255, 255, 255, 0.25)';
+  const effectiveOpacity = isVerified ? 0.85 : hologramOpacity;
 
   const headRotation = headRotateAnim.interpolate({
     inputRange: [-1, 0, 1],
-    outputRange: ['-22deg', '0deg', '22deg'],
+    outputRange: ['-20deg', '0deg', '20deg'],
   });
 
   const headOffset = headRotateAnim.interpolate({
     inputRange: [-1, 0, 1],
-    outputRange: [-14, 0, 14],
+    outputRange: [-16, 0, 16],
   });
 
   const arrowOpacity = arrowPulseAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: [0.3, 1.0],
+    outputRange: [0.2, 0.9],
   });
 
   const arrowTranslateXLeft = arrowPulseAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: [0, -6],
+    outputRange: [0, -8],
   });
 
   const arrowTranslateXRight = arrowPulseAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: [0, 6],
+    outputRange: [0, 8],
   });
 
   return (
-    <View style={styles.avatarContainer} pointerEvents="none">
-      <View style={[styles.avatarGlowBackdrop, { borderColor: glowBorderColor }]}>
-        {/* Left Arrow Guide */}
-        {challenge === 'turn_head_left' && (
-          <Animated.View
-            style={[
-              styles.chevronGroup,
-              styles.chevronLeft,
-              {
-                opacity: arrowOpacity,
-                transform: [{ translateX: arrowTranslateXLeft }],
-              },
-            ]}>
-            <View style={[styles.chevronArrowLeft, { borderRightColor: primaryColor }]} />
-            <View style={[styles.chevronArrowLeft, { borderRightColor: primaryColor, marginLeft: 2 }]} />
-          </Animated.View>
-        )}
-
-        {/* The Animated Cartoon Head Silhouette */}
+    <View style={[styles.avatarHologramContainer, { opacity: effectiveOpacity }]} pointerEvents="none">
+      {/* Left Chevron Guide (When turning left) */}
+      {challenge === 'turn_head_left' && (
         <Animated.View
           style={[
-            styles.headOutline,
+            styles.chevronGroup,
+            styles.chevronLeft,
             {
-              borderColor: primaryColor,
-              transform: [{ rotateZ: headRotation }, { translateX: headOffset }],
+              opacity: arrowOpacity,
+              transform: [{ translateX: arrowTranslateXLeft }],
             },
           ]}>
-          {/* Forehead biometric tracker notch */}
-          <View style={[styles.foreheadSensor, { backgroundColor: primaryColor }]} />
-
-          {/* Eyes Row */}
-          <View style={styles.eyesRow}>
-            <Animated.View
-              style={[
-                styles.eyePill,
-                {
-                  backgroundColor: primaryColor,
-                  transform: [{ scaleY: eyeBlinkAnim }],
-                },
-              ]}
-            />
-            <Animated.View
-              style={[
-                styles.eyePill,
-                {
-                  backgroundColor: primaryColor,
-                  transform: [{ scaleY: eyeBlinkAnim }],
-                },
-              ]}
-            />
-          </View>
-
-          {/* Nose Accent */}
-          <View style={[styles.noseLine, { backgroundColor: primaryColor }]} />
-
-          {/* Mouth Shape (Neutral or Animated Smile) */}
-          {challenge === 'smile' ? (
-            <Animated.View
-              style={[
-                styles.mouthSmile,
-                {
-                  borderColor: primaryColor,
-                  transform: [
-                    {
-                      scaleY: mouthCurveAnim.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [0.3, 1.3],
-                      }),
-                    },
-                    {
-                      scaleX: mouthCurveAnim.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [0.8, 1.2],
-                      }),
-                    },
-                  ],
-                },
-              ]}
-            />
-          ) : (
-            <View style={[styles.mouthNeutral, { backgroundColor: primaryColor }]} />
-          )}
-
-          {/* Verified Checkmark Overlay */}
-          {isVerified && (
-            <View style={styles.verifiedBadge}>
-              <View style={styles.verifiedStemShort} />
-              <View style={styles.verifiedStemLong} />
-            </View>
-          )}
+          <View style={[styles.chevronArrowLeft, { borderRightColor: primaryColor }]} />
+          <View style={[styles.chevronArrowLeft, { borderRightColor: primaryColor, marginLeft: 4 }]} />
         </Animated.View>
+      )}
 
-        {/* Right Arrow Guide */}
-        {challenge === 'turn_head_right' && (
+      {/* The Translucent Animated White Silhouette / Cartoon Head */}
+      <Animated.View
+        style={[
+          styles.headOutline,
+          {
+            borderColor: primaryColor,
+            transform: [{ rotateZ: headRotation }, { translateX: headOffset }],
+          },
+        ]}>
+        {/* Forehead biometric scan bar */}
+        <View style={[styles.foreheadSensor, { backgroundColor: primaryColor }]} />
+
+        {/* Eyes Row */}
+        <View style={styles.eyesRow}>
           <Animated.View
             style={[
-              styles.chevronGroup,
-              styles.chevronRight,
+              styles.eyePill,
               {
-                opacity: arrowOpacity,
-                transform: [{ translateX: arrowTranslateXRight }],
+                backgroundColor: primaryColor,
+                transform: [{ scaleY: eyeBlinkAnim }],
               },
-            ]}>
-            <View style={[styles.chevronArrowRight, { borderLeftColor: primaryColor }]} />
-            <View style={[styles.chevronArrowRight, { borderLeftColor: primaryColor, marginLeft: 2 }]} />
-          </Animated.View>
+            ]}
+          />
+          <Animated.View
+            style={[
+              styles.eyePill,
+              {
+                backgroundColor: primaryColor,
+                transform: [{ scaleY: eyeBlinkAnim }],
+              },
+            ]}
+          />
+        </View>
+
+        {/* Nose Bridge */}
+        <View style={[styles.noseLine, { backgroundColor: primaryColor }]} />
+
+        {/* Mouth Shape (Neutral or Animated Upward Curve for Smile) */}
+        {challenge === 'smile' ? (
+          <Animated.View
+            style={[
+              styles.mouthSmile,
+              {
+                borderColor: primaryColor,
+                transform: [
+                  {
+                    scaleY: mouthCurveAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0.3, 1.3],
+                    }),
+                  },
+                  {
+                    scaleX: mouthCurveAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0.8, 1.25],
+                    }),
+                  },
+                ],
+              },
+            ]}
+          />
+        ) : (
+          <View style={[styles.mouthNeutral, { backgroundColor: primaryColor }]} />
         )}
-      </View>
+      </Animated.View>
+
+      {/* Right Chevron Guide (When turning right) */}
+      {challenge === 'turn_head_right' && (
+        <Animated.View
+          style={[
+            styles.chevronGroup,
+            styles.chevronRight,
+            {
+              opacity: arrowOpacity,
+              transform: [{ translateX: arrowTranslateXRight }],
+            },
+          ]}>
+          <View style={[styles.chevronArrowRight, { borderLeftColor: primaryColor }]} />
+          <View style={[styles.chevronArrowRight, { borderLeftColor: primaryColor, marginLeft: 4 }]} />
+        </Animated.View>
+      )}
     </View>
   );
 };
@@ -352,6 +326,8 @@ export const FaceLivenessOverlay: React.FC<FaceLivenessOverlayProps> = ({
   instructionText,
   isAnalyzing = false,
   isVerified = false,
+  showHologram = true,
+  hologramOpacity = 0.38,
 }) => {
   const scanLineAnim = useRef(new Animated.Value(0)).current;
 
@@ -424,7 +400,7 @@ export const FaceLivenessOverlay: React.FC<FaceLivenessOverlayProps> = ({
 
   return (
     <View style={styles.container} pointerEvents="box-none">
-      {/* Top HUD: Status Bar & Kinetic Prompt Avatar */}
+      {/* Top Floating Status Capsule */}
       <View style={styles.topContainer} pointerEvents="none">
         <View style={styles.topHudBadge}>
           <View style={[styles.statusDot, { backgroundColor: isVerified ? '#10B981' : isAnalyzing ? '#3B82F6' : '#94A3B8' }]} />
@@ -432,18 +408,10 @@ export const FaceLivenessOverlay: React.FC<FaceLivenessOverlayProps> = ({
             {isVerified ? 'BIOMETRIC MATCH CONFIRMED' : isAnalyzing ? 'LIVE INFERENCE ENGINE' : 'READY TO SCAN'}
           </Text>
         </View>
-
-        {/* Visual Animated White Cartoon Head Guide */}
-        <BiometricPromptAvatar
-          challenge={activeChallenge}
-          isVerified={isVerified}
-          faceStatus={faceStatus}
-        />
       </View>
 
-      {/* Center Biometric Reticle & Oval Aperture */}
+      {/* Center Biometric Reticle: Oval Aperture + Translucent Animated Hologram Overlay */}
       <View style={styles.centerContainer} pointerEvents="none">
-        {/* The Oval Boundary */}
         <View style={[styles.faceOval, { borderColor: reticleColor }]}>
           {/* Sweeping Laser Scan Beam */}
           {isAnalyzing && !isVerified && (
@@ -458,11 +426,21 @@ export const FaceLivenessOverlay: React.FC<FaceLivenessOverlayProps> = ({
             />
           )}
 
-          {/* 4 Corner Target Brackets */}
+          {/* 4 High-Tech Corner Target Brackets */}
           <View style={[styles.cornerBracket, styles.bracketTopLeft, { borderColor: reticleColor }]} />
           <View style={[styles.cornerBracket, styles.bracketTopRight, { borderColor: reticleColor }]} />
           <View style={[styles.cornerBracket, styles.bracketBottomLeft, { borderColor: reticleColor }]} />
           <View style={[styles.cornerBracket, styles.bracketBottomRight, { borderColor: reticleColor }]} />
+
+          {/* Translucent Animated White Silhouette / Cartoon Head OVERLAID IN THE MIDDLE */}
+          {showHologram && (
+            <BiometricPromptAvatar
+              challenge={activeChallenge}
+              isVerified={isVerified}
+              faceStatus={faceStatus}
+              hologramOpacity={hologramOpacity}
+            />
+          )}
         </View>
       </View>
 
@@ -527,7 +505,6 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     borderWidth: 1,
     borderColor: '#334155',
-    marginBottom: 12,
   },
   statusDot: {
     width: 7,
@@ -542,133 +519,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.8,
   },
 
-  // Avatar Component Styles
-  avatarContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarGlowBackdrop: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(10, 14, 23, 0.85)',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 28,
-    borderWidth: 1.5,
-  },
-  headOutline: {
-    width: 60,
-    height: 74,
-    borderRadius: 30,
-    borderWidth: 2.5,
-    alignItems: 'center',
-    justifyContent: 'center',
-    position: 'relative',
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
-  },
-  foreheadSensor: {
-    position: 'absolute',
-    top: 7,
-    width: 8,
-    height: 3,
-    borderRadius: 1.5,
-  },
-  eyesRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: 28,
-    marginTop: 4,
-  },
-  eyePill: {
-    width: 6,
-    height: 9,
-    borderRadius: 3,
-  },
-  noseLine: {
-    width: 2,
-    height: 7,
-    borderRadius: 1,
-    marginVertical: 4,
-    opacity: 0.7,
-  },
-  mouthNeutral: {
-    width: 14,
-    height: 2.5,
-    borderRadius: 1.5,
-  },
-  mouthSmile: {
-    width: 18,
-    height: 9,
-    borderBottomWidth: 3,
-    borderLeftWidth: 1,
-    borderRightWidth: 1,
-    borderRadius: 9,
-  },
-  chevronGroup: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    position: 'absolute',
-  },
-  chevronLeft: {
-    left: 2,
-  },
-  chevronRight: {
-    right: 2,
-  },
-  chevronArrowLeft: {
-    width: 0,
-    height: 0,
-    backgroundColor: 'transparent',
-    borderStyle: 'solid',
-    borderTopWidth: 6,
-    borderRightWidth: 8,
-    borderBottomWidth: 6,
-    borderLeftWidth: 0,
-    borderTopColor: 'transparent',
-    borderBottomColor: 'transparent',
-  },
-  chevronArrowRight: {
-    width: 0,
-    height: 0,
-    backgroundColor: 'transparent',
-    borderStyle: 'solid',
-    borderTopWidth: 6,
-    borderRightWidth: 0,
-    borderBottomWidth: 6,
-    borderLeftWidth: 8,
-    borderTopColor: 'transparent',
-    borderBottomColor: 'transparent',
-  },
-  verifiedBadge: {
-    position: 'absolute',
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    backgroundColor: '#10B981',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  verifiedStemShort: {
-    position: 'absolute',
-    left: 8,
-    top: 13,
-    width: 4,
-    height: 2.5,
-    backgroundColor: '#FFFFFF',
-    transform: [{ rotate: '45deg' }],
-  },
-  verifiedStemLong: {
-    position: 'absolute',
-    left: 10,
-    top: 10,
-    width: 2.5,
-    height: 10,
-    backgroundColor: '#FFFFFF',
-    transform: [{ rotate: '45deg' }],
-  },
-
-  // Center Reticle
+  // Center Reticle & Hologram Overlay
   centerContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -683,6 +534,95 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     position: 'relative',
     overflow: 'hidden',
+  },
+  avatarHologramContainer: {
+    ...StyleSheet.absoluteFill,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headOutline: {
+    width: ovalWidth * 0.54,
+    height: ovalHeight * 0.58,
+    borderRadius: (ovalWidth * 0.54) / 2,
+    borderWidth: 2.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+    backgroundColor: 'transparent',
+  },
+  foreheadSensor: {
+    position: 'absolute',
+    top: 10,
+    width: 14,
+    height: 3,
+    borderRadius: 1.5,
+  },
+  eyesRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: 44,
+    marginTop: 10,
+  },
+  eyePill: {
+    width: 9,
+    height: 12,
+    borderRadius: 5,
+  },
+  noseLine: {
+    width: 2.5,
+    height: 12,
+    borderRadius: 1.5,
+    marginVertical: 8,
+    opacity: 0.7,
+  },
+  mouthNeutral: {
+    width: 24,
+    height: 3,
+    borderRadius: 1.5,
+  },
+  mouthSmile: {
+    width: 32,
+    height: 14,
+    borderBottomWidth: 3.5,
+    borderLeftWidth: 1.5,
+    borderRightWidth: 1.5,
+    borderRadius: 16,
+  },
+  chevronGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    position: 'absolute',
+    top: '46%',
+  },
+  chevronLeft: {
+    left: 14,
+  },
+  chevronRight: {
+    right: 14,
+  },
+  chevronArrowLeft: {
+    width: 0,
+    height: 0,
+    backgroundColor: 'transparent',
+    borderStyle: 'solid',
+    borderTopWidth: 8,
+    borderRightWidth: 11,
+    borderBottomWidth: 8,
+    borderLeftWidth: 0,
+    borderTopColor: 'transparent',
+    borderBottomColor: 'transparent',
+  },
+  chevronArrowRight: {
+    width: 0,
+    height: 0,
+    backgroundColor: 'transparent',
+    borderStyle: 'solid',
+    borderTopWidth: 8,
+    borderRightWidth: 0,
+    borderBottomWidth: 8,
+    borderLeftWidth: 11,
+    borderTopColor: 'transparent',
+    borderBottomColor: 'transparent',
   },
   scanLaserBeam: {
     position: 'absolute',

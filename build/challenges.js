@@ -1,6 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.CHALLENGE_INSTRUCTIONS = void 0;
+exports.DEFAULT_CHALLENGE_POOL = exports.CHALLENGE_INSTRUCTIONS = void 0;
+exports.getRandomChallenge = getRandomChallenge;
+exports.getRandomChallenges = getRandomChallenges;
 exports.getChallengeInstruction = getChallengeInstruction;
 exports.getFaceStatusInstruction = getFaceStatusInstruction;
 exports.getLivenessResultSummary = getLivenessResultSummary;
@@ -14,6 +16,30 @@ exports.CHALLENGE_INSTRUCTIONS = {
     blink: 'Blink your eyes naturally',
     smile: 'Smile naturally',
 };
+/**
+ * Standard pool of kinetic challenges for anti-spoof verification.
+ */
+exports.DEFAULT_CHALLENGE_POOL = [
+    'turn_head_left',
+    'turn_head_right',
+    'smile',
+    'blink',
+];
+/**
+ * Returns a randomized challenge from the pool.
+ * Guarantees unpredictable prompts on every verification session.
+ */
+function getRandomChallenge(pool = exports.DEFAULT_CHALLENGE_POOL) {
+    const index = Math.floor(Math.random() * pool.length);
+    return pool[index];
+}
+/**
+ * Returns an array of N unique randomized challenges.
+ */
+function getRandomChallenges(count = 1, pool = exports.DEFAULT_CHALLENGE_POOL) {
+    const shuffled = [...pool].sort(() => 0.5 - Math.random());
+    return shuffled.slice(0, Math.min(count, pool.length));
+}
 /**
  * Returns prompt guidance for a specific challenge step.
  */

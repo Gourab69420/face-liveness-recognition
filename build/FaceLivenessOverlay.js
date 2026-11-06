@@ -38,18 +38,18 @@ const react_1 = __importStar(require("react"));
 const react_native_1 = require("react-native");
 const challenges_1 = require("./challenges");
 /**
- * High-tech animated white biometric cartoon/silhouette guide.
- * Animates head turning, smiling, and blinking based on current challenge,
- * and turns emerald green upon successful verification.
+ * High-tech animated white biometric cartoon / hologram silhouette.
+ * Positioned in the middle of the screen directly on top of the face display,
+ * with subtle translucent opacity. When verified, smoothly turns emerald green
+ * (no check or tick required).
  */
-const BiometricPromptAvatar = ({ challenge, isVerified = false, faceStatus = 'face_detected' }) => {
+const BiometricPromptAvatar = ({ challenge, isVerified = false, faceStatus = 'face_detected', hologramOpacity = 0.38, }) => {
     // Animation values
     const headRotateAnim = (0, react_1.useRef)(new react_native_1.Animated.Value(0)).current;
     const headTranslateX = (0, react_1.useRef)(new react_native_1.Animated.Value(0)).current;
     const mouthCurveAnim = (0, react_1.useRef)(new react_native_1.Animated.Value(0)).current;
     const eyeBlinkAnim = (0, react_1.useRef)(new react_native_1.Animated.Value(1)).current;
     const arrowPulseAnim = (0, react_1.useRef)(new react_native_1.Animated.Value(0)).current;
-    const scanLineAnim = (0, react_1.useRef)(new react_native_1.Animated.Value(0)).current;
     // Head turn animation loop
     (0, react_1.useEffect)(() => {
         let animLoop = null;
@@ -59,17 +59,17 @@ const BiometricPromptAvatar = ({ challenge, isVerified = false, faceStatus = 'fa
             animLoop = react_native_1.Animated.loop(react_native_1.Animated.sequence([
                 react_native_1.Animated.timing(headRotateAnim, {
                     toValue: -1,
-                    duration: 800,
+                    duration: 850,
                     easing: react_native_1.Easing.inOut(react_native_1.Easing.ease),
                     useNativeDriver: true,
                 }),
                 react_native_1.Animated.timing(headRotateAnim, {
                     toValue: 0,
-                    duration: 600,
+                    duration: 650,
                     easing: react_native_1.Easing.inOut(react_native_1.Easing.ease),
                     useNativeDriver: true,
                 }),
-                react_native_1.Animated.delay(400),
+                react_native_1.Animated.delay(350),
             ]));
             animLoop.start();
         }
@@ -79,17 +79,17 @@ const BiometricPromptAvatar = ({ challenge, isVerified = false, faceStatus = 'fa
             animLoop = react_native_1.Animated.loop(react_native_1.Animated.sequence([
                 react_native_1.Animated.timing(headRotateAnim, {
                     toValue: 1,
-                    duration: 800,
+                    duration: 850,
                     easing: react_native_1.Easing.inOut(react_native_1.Easing.ease),
                     useNativeDriver: true,
                 }),
                 react_native_1.Animated.timing(headRotateAnim, {
                     toValue: 0,
-                    duration: 600,
+                    duration: 650,
                     easing: react_native_1.Easing.inOut(react_native_1.Easing.ease),
                     useNativeDriver: true,
                 }),
-                react_native_1.Animated.delay(400),
+                react_native_1.Animated.delay(350),
             ]));
             animLoop.start();
         }
@@ -160,7 +160,7 @@ const BiometricPromptAvatar = ({ challenge, isVerified = false, faceStatus = 'fa
         let loop = null;
         if (challenge === 'blink') {
             loop = react_native_1.Animated.loop(react_native_1.Animated.sequence([
-                react_native_1.Animated.delay(900),
+                react_native_1.Animated.delay(1000),
                 react_native_1.Animated.timing(eyeBlinkAnim, {
                     toValue: 0.1,
                     duration: 150,
@@ -181,121 +181,96 @@ const BiometricPromptAvatar = ({ challenge, isVerified = false, faceStatus = 'fa
         }
         return () => loop?.stop();
     }, [challenge, eyeBlinkAnim]);
-    // Scanning radar line loop
-    (0, react_1.useEffect)(() => {
-        const loop = react_native_1.Animated.loop(react_native_1.Animated.sequence([
-            react_native_1.Animated.timing(scanLineAnim, {
-                toValue: 1,
-                duration: 1400,
-                easing: react_native_1.Easing.inOut(react_native_1.Easing.sin),
-                useNativeDriver: true,
-            }),
-            react_native_1.Animated.timing(scanLineAnim, {
-                toValue: 0,
-                duration: 1400,
-                easing: react_native_1.Easing.inOut(react_native_1.Easing.sin),
-                useNativeDriver: true,
-            }),
-        ]));
-        loop.start();
-        return () => loop.stop();
-    }, [scanLineAnim]);
-    // Dynamic colors
+    // Dynamic colors & translucent opacity
     const primaryColor = isVerified ? '#10B981' : '#FFFFFF';
-    const glowBorderColor = isVerified
-        ? 'rgba(16, 185, 129, 0.45)'
-        : 'rgba(255, 255, 255, 0.25)';
+    const effectiveOpacity = isVerified ? 0.85 : hologramOpacity;
     const headRotation = headRotateAnim.interpolate({
         inputRange: [-1, 0, 1],
-        outputRange: ['-22deg', '0deg', '22deg'],
+        outputRange: ['-20deg', '0deg', '20deg'],
     });
     const headOffset = headRotateAnim.interpolate({
         inputRange: [-1, 0, 1],
-        outputRange: [-14, 0, 14],
+        outputRange: [-16, 0, 16],
     });
     const arrowOpacity = arrowPulseAnim.interpolate({
         inputRange: [0, 1],
-        outputRange: [0.3, 1.0],
+        outputRange: [0.2, 0.9],
     });
     const arrowTranslateXLeft = arrowPulseAnim.interpolate({
         inputRange: [0, 1],
-        outputRange: [0, -6],
+        outputRange: [0, -8],
     });
     const arrowTranslateXRight = arrowPulseAnim.interpolate({
         inputRange: [0, 1],
-        outputRange: [0, 6],
+        outputRange: [0, 8],
     });
-    return (react_1.default.createElement(react_native_1.View, { style: styles.avatarContainer, pointerEvents: "none" },
-        react_1.default.createElement(react_native_1.View, { style: [styles.avatarGlowBackdrop, { borderColor: glowBorderColor }] },
-            challenge === 'turn_head_left' && (react_1.default.createElement(react_native_1.Animated.View, { style: [
-                    styles.chevronGroup,
-                    styles.chevronLeft,
-                    {
-                        opacity: arrowOpacity,
-                        transform: [{ translateX: arrowTranslateXLeft }],
-                    },
-                ] },
-                react_1.default.createElement(react_native_1.View, { style: [styles.chevronArrowLeft, { borderRightColor: primaryColor }] }),
-                react_1.default.createElement(react_native_1.View, { style: [styles.chevronArrowLeft, { borderRightColor: primaryColor, marginLeft: 2 }] }))),
-            react_1.default.createElement(react_native_1.Animated.View, { style: [
-                    styles.headOutline,
+    return (react_1.default.createElement(react_native_1.View, { style: [styles.avatarHologramContainer, { opacity: effectiveOpacity }], pointerEvents: "none" },
+        challenge === 'turn_head_left' && (react_1.default.createElement(react_native_1.Animated.View, { style: [
+                styles.chevronGroup,
+                styles.chevronLeft,
+                {
+                    opacity: arrowOpacity,
+                    transform: [{ translateX: arrowTranslateXLeft }],
+                },
+            ] },
+            react_1.default.createElement(react_native_1.View, { style: [styles.chevronArrowLeft, { borderRightColor: primaryColor }] }),
+            react_1.default.createElement(react_native_1.View, { style: [styles.chevronArrowLeft, { borderRightColor: primaryColor, marginLeft: 4 }] }))),
+        react_1.default.createElement(react_native_1.Animated.View, { style: [
+                styles.headOutline,
+                {
+                    borderColor: primaryColor,
+                    transform: [{ rotateZ: headRotation }, { translateX: headOffset }],
+                },
+            ] },
+            react_1.default.createElement(react_native_1.View, { style: [styles.foreheadSensor, { backgroundColor: primaryColor }] }),
+            react_1.default.createElement(react_native_1.View, { style: styles.eyesRow },
+                react_1.default.createElement(react_native_1.Animated.View, { style: [
+                        styles.eyePill,
+                        {
+                            backgroundColor: primaryColor,
+                            transform: [{ scaleY: eyeBlinkAnim }],
+                        },
+                    ] }),
+                react_1.default.createElement(react_native_1.Animated.View, { style: [
+                        styles.eyePill,
+                        {
+                            backgroundColor: primaryColor,
+                            transform: [{ scaleY: eyeBlinkAnim }],
+                        },
+                    ] })),
+            react_1.default.createElement(react_native_1.View, { style: [styles.noseLine, { backgroundColor: primaryColor }] }),
+            challenge === 'smile' ? (react_1.default.createElement(react_native_1.Animated.View, { style: [
+                    styles.mouthSmile,
                     {
                         borderColor: primaryColor,
-                        transform: [{ rotateZ: headRotation }, { translateX: headOffset }],
-                    },
-                ] },
-                react_1.default.createElement(react_native_1.View, { style: [styles.foreheadSensor, { backgroundColor: primaryColor }] }),
-                react_1.default.createElement(react_native_1.View, { style: styles.eyesRow },
-                    react_1.default.createElement(react_native_1.Animated.View, { style: [
-                            styles.eyePill,
+                        transform: [
                             {
-                                backgroundColor: primaryColor,
-                                transform: [{ scaleY: eyeBlinkAnim }],
+                                scaleY: mouthCurveAnim.interpolate({
+                                    inputRange: [0, 1],
+                                    outputRange: [0.3, 1.3],
+                                }),
                             },
-                        ] }),
-                    react_1.default.createElement(react_native_1.Animated.View, { style: [
-                            styles.eyePill,
                             {
-                                backgroundColor: primaryColor,
-                                transform: [{ scaleY: eyeBlinkAnim }],
+                                scaleX: mouthCurveAnim.interpolate({
+                                    inputRange: [0, 1],
+                                    outputRange: [0.8, 1.25],
+                                }),
                             },
-                        ] })),
-                react_1.default.createElement(react_native_1.View, { style: [styles.noseLine, { backgroundColor: primaryColor }] }),
-                challenge === 'smile' ? (react_1.default.createElement(react_native_1.Animated.View, { style: [
-                        styles.mouthSmile,
-                        {
-                            borderColor: primaryColor,
-                            transform: [
-                                {
-                                    scaleY: mouthCurveAnim.interpolate({
-                                        inputRange: [0, 1],
-                                        outputRange: [0.3, 1.3],
-                                    }),
-                                },
-                                {
-                                    scaleX: mouthCurveAnim.interpolate({
-                                        inputRange: [0, 1],
-                                        outputRange: [0.8, 1.2],
-                                    }),
-                                },
-                            ],
-                        },
-                    ] })) : (react_1.default.createElement(react_native_1.View, { style: [styles.mouthNeutral, { backgroundColor: primaryColor }] })),
-                isVerified && (react_1.default.createElement(react_native_1.View, { style: styles.verifiedBadge },
-                    react_1.default.createElement(react_native_1.View, { style: styles.verifiedStemShort }),
-                    react_1.default.createElement(react_native_1.View, { style: styles.verifiedStemLong })))),
-            challenge === 'turn_head_right' && (react_1.default.createElement(react_native_1.Animated.View, { style: [
-                    styles.chevronGroup,
-                    styles.chevronRight,
-                    {
-                        opacity: arrowOpacity,
-                        transform: [{ translateX: arrowTranslateXRight }],
+                        ],
                     },
-                ] },
-                react_1.default.createElement(react_native_1.View, { style: [styles.chevronArrowRight, { borderLeftColor: primaryColor }] }),
-                react_1.default.createElement(react_native_1.View, { style: [styles.chevronArrowRight, { borderLeftColor: primaryColor, marginLeft: 2 }] }))))));
+                ] })) : (react_1.default.createElement(react_native_1.View, { style: [styles.mouthNeutral, { backgroundColor: primaryColor }] }))),
+        challenge === 'turn_head_right' && (react_1.default.createElement(react_native_1.Animated.View, { style: [
+                styles.chevronGroup,
+                styles.chevronRight,
+                {
+                    opacity: arrowOpacity,
+                    transform: [{ translateX: arrowTranslateXRight }],
+                },
+            ] },
+            react_1.default.createElement(react_native_1.View, { style: [styles.chevronArrowRight, { borderLeftColor: primaryColor }] }),
+            react_1.default.createElement(react_native_1.View, { style: [styles.chevronArrowRight, { borderLeftColor: primaryColor, marginLeft: 4 }] })))));
 };
-const FaceLivenessOverlay = ({ faceStatus = 'no_face', progress, activeChallenge = 'none', instructionText, isAnalyzing = false, isVerified = false, }) => {
+const FaceLivenessOverlay = ({ faceStatus = 'no_face', progress, activeChallenge = 'none', instructionText, isAnalyzing = false, isVerified = false, showHologram = true, hologramOpacity = 0.38, }) => {
     const scanLineAnim = (0, react_1.useRef)(new react_native_1.Animated.Value(0)).current;
     // Radar beam sweep animation
     (0, react_1.useEffect)(() => {
@@ -359,8 +334,7 @@ const FaceLivenessOverlay = ({ faceStatus = 'no_face', progress, activeChallenge
         react_1.default.createElement(react_native_1.View, { style: styles.topContainer, pointerEvents: "none" },
             react_1.default.createElement(react_native_1.View, { style: styles.topHudBadge },
                 react_1.default.createElement(react_native_1.View, { style: [styles.statusDot, { backgroundColor: isVerified ? '#10B981' : isAnalyzing ? '#3B82F6' : '#94A3B8' }] }),
-                react_1.default.createElement(react_native_1.Text, { style: styles.topHudTitle }, isVerified ? 'BIOMETRIC MATCH CONFIRMED' : isAnalyzing ? 'LIVE INFERENCE ENGINE' : 'READY TO SCAN')),
-            react_1.default.createElement(BiometricPromptAvatar, { challenge: activeChallenge, isVerified: isVerified, faceStatus: faceStatus })),
+                react_1.default.createElement(react_native_1.Text, { style: styles.topHudTitle }, isVerified ? 'BIOMETRIC MATCH CONFIRMED' : isAnalyzing ? 'LIVE INFERENCE ENGINE' : 'READY TO SCAN'))),
         react_1.default.createElement(react_native_1.View, { style: styles.centerContainer, pointerEvents: "none" },
             react_1.default.createElement(react_native_1.View, { style: [styles.faceOval, { borderColor: reticleColor }] },
                 isAnalyzing && !isVerified && (react_1.default.createElement(react_native_1.Animated.View, { style: [
@@ -373,7 +347,8 @@ const FaceLivenessOverlay = ({ faceStatus = 'no_face', progress, activeChallenge
                 react_1.default.createElement(react_native_1.View, { style: [styles.cornerBracket, styles.bracketTopLeft, { borderColor: reticleColor }] }),
                 react_1.default.createElement(react_native_1.View, { style: [styles.cornerBracket, styles.bracketTopRight, { borderColor: reticleColor }] }),
                 react_1.default.createElement(react_native_1.View, { style: [styles.cornerBracket, styles.bracketBottomLeft, { borderColor: reticleColor }] }),
-                react_1.default.createElement(react_native_1.View, { style: [styles.cornerBracket, styles.bracketBottomRight, { borderColor: reticleColor }] }))),
+                react_1.default.createElement(react_native_1.View, { style: [styles.cornerBracket, styles.bracketBottomRight, { borderColor: reticleColor }] }),
+                showHologram && (react_1.default.createElement(BiometricPromptAvatar, { challenge: activeChallenge, isVerified: isVerified, faceStatus: faceStatus, hologramOpacity: hologramOpacity })))),
         react_1.default.createElement(react_native_1.View, { style: styles.bottomContainer, pointerEvents: "none" },
             react_1.default.createElement(react_native_1.View, { style: [styles.instructionCard, isVerified && styles.instructionCardVerified] },
                 react_1.default.createElement(react_native_1.Text, { style: [styles.instructionTitle, isVerified && styles.instructionTitleVerified] }, currentInstruction.toUpperCase()),
@@ -419,7 +394,6 @@ const styles = react_native_1.StyleSheet.create({
         borderRadius: 20,
         borderWidth: 1,
         borderColor: '#334155',
-        marginBottom: 12,
     },
     statusDot: {
         width: 7,
@@ -433,132 +407,7 @@ const styles = react_native_1.StyleSheet.create({
         fontWeight: '700',
         letterSpacing: 0.8,
     },
-    // Avatar Component Styles
-    avatarContainer: {
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    avatarGlowBackdrop: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: 'rgba(10, 14, 23, 0.85)',
-        paddingHorizontal: 20,
-        paddingVertical: 12,
-        borderRadius: 28,
-        borderWidth: 1.5,
-    },
-    headOutline: {
-        width: 60,
-        height: 74,
-        borderRadius: 30,
-        borderWidth: 2.5,
-        alignItems: 'center',
-        justifyContent: 'center',
-        position: 'relative',
-        backgroundColor: 'rgba(255, 255, 255, 0.04)',
-    },
-    foreheadSensor: {
-        position: 'absolute',
-        top: 7,
-        width: 8,
-        height: 3,
-        borderRadius: 1.5,
-    },
-    eyesRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        width: 28,
-        marginTop: 4,
-    },
-    eyePill: {
-        width: 6,
-        height: 9,
-        borderRadius: 3,
-    },
-    noseLine: {
-        width: 2,
-        height: 7,
-        borderRadius: 1,
-        marginVertical: 4,
-        opacity: 0.7,
-    },
-    mouthNeutral: {
-        width: 14,
-        height: 2.5,
-        borderRadius: 1.5,
-    },
-    mouthSmile: {
-        width: 18,
-        height: 9,
-        borderBottomWidth: 3,
-        borderLeftWidth: 1,
-        borderRightWidth: 1,
-        borderRadius: 9,
-    },
-    chevronGroup: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        position: 'absolute',
-    },
-    chevronLeft: {
-        left: 2,
-    },
-    chevronRight: {
-        right: 2,
-    },
-    chevronArrowLeft: {
-        width: 0,
-        height: 0,
-        backgroundColor: 'transparent',
-        borderStyle: 'solid',
-        borderTopWidth: 6,
-        borderRightWidth: 8,
-        borderBottomWidth: 6,
-        borderLeftWidth: 0,
-        borderTopColor: 'transparent',
-        borderBottomColor: 'transparent',
-    },
-    chevronArrowRight: {
-        width: 0,
-        height: 0,
-        backgroundColor: 'transparent',
-        borderStyle: 'solid',
-        borderTopWidth: 6,
-        borderRightWidth: 0,
-        borderBottomWidth: 6,
-        borderLeftWidth: 8,
-        borderTopColor: 'transparent',
-        borderBottomColor: 'transparent',
-    },
-    verifiedBadge: {
-        position: 'absolute',
-        width: 26,
-        height: 26,
-        borderRadius: 13,
-        backgroundColor: '#10B981',
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    verifiedStemShort: {
-        position: 'absolute',
-        left: 8,
-        top: 13,
-        width: 4,
-        height: 2.5,
-        backgroundColor: '#FFFFFF',
-        transform: [{ rotate: '45deg' }],
-    },
-    verifiedStemLong: {
-        position: 'absolute',
-        left: 10,
-        top: 10,
-        width: 2.5,
-        height: 10,
-        backgroundColor: '#FFFFFF',
-        transform: [{ rotate: '45deg' }],
-    },
-    // Center Reticle
+    // Center Reticle & Hologram Overlay
     centerContainer: {
         flex: 1,
         justifyContent: 'center',
@@ -573,6 +422,95 @@ const styles = react_native_1.StyleSheet.create({
         justifyContent: 'center',
         position: 'relative',
         overflow: 'hidden',
+    },
+    avatarHologramContainer: {
+        ...react_native_1.StyleSheet.absoluteFill,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    headOutline: {
+        width: ovalWidth * 0.54,
+        height: ovalHeight * 0.58,
+        borderRadius: (ovalWidth * 0.54) / 2,
+        borderWidth: 2.5,
+        alignItems: 'center',
+        justifyContent: 'center',
+        position: 'relative',
+        backgroundColor: 'transparent',
+    },
+    foreheadSensor: {
+        position: 'absolute',
+        top: 10,
+        width: 14,
+        height: 3,
+        borderRadius: 1.5,
+    },
+    eyesRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        width: 44,
+        marginTop: 10,
+    },
+    eyePill: {
+        width: 9,
+        height: 12,
+        borderRadius: 5,
+    },
+    noseLine: {
+        width: 2.5,
+        height: 12,
+        borderRadius: 1.5,
+        marginVertical: 8,
+        opacity: 0.7,
+    },
+    mouthNeutral: {
+        width: 24,
+        height: 3,
+        borderRadius: 1.5,
+    },
+    mouthSmile: {
+        width: 32,
+        height: 14,
+        borderBottomWidth: 3.5,
+        borderLeftWidth: 1.5,
+        borderRightWidth: 1.5,
+        borderRadius: 16,
+    },
+    chevronGroup: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        position: 'absolute',
+        top: '46%',
+    },
+    chevronLeft: {
+        left: 14,
+    },
+    chevronRight: {
+        right: 14,
+    },
+    chevronArrowLeft: {
+        width: 0,
+        height: 0,
+        backgroundColor: 'transparent',
+        borderStyle: 'solid',
+        borderTopWidth: 8,
+        borderRightWidth: 11,
+        borderBottomWidth: 8,
+        borderLeftWidth: 0,
+        borderTopColor: 'transparent',
+        borderBottomColor: 'transparent',
+    },
+    chevronArrowRight: {
+        width: 0,
+        height: 0,
+        backgroundColor: 'transparent',
+        borderStyle: 'solid',
+        borderTopWidth: 8,
+        borderRightWidth: 0,
+        borderBottomWidth: 8,
+        borderLeftWidth: 11,
+        borderTopColor: 'transparent',
+        borderBottomColor: 'transparent',
     },
     scanLaserBeam: {
         position: 'absolute',

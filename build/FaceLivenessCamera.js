@@ -38,7 +38,8 @@ const react_1 = __importStar(require("react"));
 const react_native_1 = require("react-native");
 const NativeExpoFaceLiveness_1 = require("./NativeExpoFaceLiveness");
 const FaceLivenessOverlay_1 = require("./FaceLivenessOverlay");
-const FaceLivenessCamera = ({ active = true, config = {}, challenges: directChallenges, enrolledProfiles: directProfiles, mode: directMode, recognitionThreshold: directRecThreshold, securityLevel: directSecLevel, onFaceStatusChanged, onProgress, onResult, onError, onPermissionDenied, showOverlay = true, isVerified = false, instructionText, children, style, }) => {
+const challenges_1 = require("./challenges");
+const FaceLivenessCamera = ({ active = true, config = {}, challenges: directChallenges, enrolledProfiles: directProfiles, mode: directMode, recognitionThreshold: directRecThreshold, securityLevel: directSecLevel, onFaceStatusChanged, onProgress, onResult, onError, onPermissionDenied, showOverlay = true, isVerified = false, instructionText, randomizeChallenges = false, hologramOpacity = 0.38, showHologram = true, children, style, }) => {
     const [permission, setPermission] = (0, react_1.useState)(null);
     const [currentFaceStatus, setCurrentFaceStatus] = (0, react_1.useState)({
         status: 'no_face',
@@ -118,9 +119,14 @@ const FaceLivenessCamera = ({ active = true, config = {}, challenges: directChal
     }
     const cfg = (config || {});
     const mode = directMode ?? cfg.mode ?? 'liveness_and_recognition';
+    const randomChallengeRef = (0, react_1.useRef)((0, challenges_1.getRandomChallenge)());
     const challenges = directChallenges ??
         cfg.challenges ??
-        (mode === 'liveness_and_recognition' ? ['smile'] : []);
+        (randomizeChallenges
+            ? [randomChallengeRef.current]
+            : mode === 'liveness_and_recognition'
+                ? ['smile']
+                : []);
     const enrolledProfiles = directProfiles ?? cfg.enrolledProfiles ?? [];
     const securityLevel = directSecLevel ?? cfg.securityLevel ?? 'balanced';
     const recognitionThreshold = directRecThreshold ??
@@ -131,7 +137,7 @@ const FaceLivenessCamera = ({ active = true, config = {}, challenges: directChal
     const customModelPath = cfg.customModelPath;
     return (react_1.default.createElement(react_native_1.View, { style: [styles.container, style] },
         react_1.default.createElement(NativeExpoFaceLiveness_1.NativeFaceLivenessView, { style: react_native_1.StyleSheet.absoluteFill, active: active, liveThreshold: liveThreshold, spoofThreshold: spoofThreshold, recognitionThreshold: recognitionThreshold, securityLevel: securityLevel, mode: mode, enrolledProfiles: enrolledProfiles, challenges: challenges, customModelPath: customModelPath, onFaceStatusChanged: handleFaceStatusChanged, onLivenessProgress: handleProgress, onLivenessResult: handleResult, onError: handleError }),
-        showOverlay && (react_1.default.createElement(FaceLivenessOverlay_1.FaceLivenessOverlay, { faceStatus: currentFaceStatus.status, progress: currentProgress, activeChallenge: currentProgress?.activeChallenge ?? 'none', isAnalyzing: active, isVerified: isVerified, instructionText: instructionText })),
+        showOverlay && (react_1.default.createElement(FaceLivenessOverlay_1.FaceLivenessOverlay, { faceStatus: currentFaceStatus.status, progress: currentProgress, activeChallenge: currentProgress?.activeChallenge ?? 'none', isAnalyzing: active, isVerified: isVerified, instructionText: instructionText, showHologram: showHologram, hologramOpacity: hologramOpacity })),
         children));
 };
 exports.FaceLivenessCamera = FaceLivenessCamera;
