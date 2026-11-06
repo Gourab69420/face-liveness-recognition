@@ -12,3 +12,8 @@ android/*.iml
 
 # Testing coverage
 coverage/
+
+# Testing apps / sandboxes
+testing-app/
+testing app/
+*.apk
