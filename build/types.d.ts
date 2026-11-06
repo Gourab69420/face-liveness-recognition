@@ -245,6 +245,14 @@ export interface FaceLivenessCameraProps {
      */
     showOverlay?: boolean;
     /**
+     * Whether identity / liveness has been verified (triggers emerald green success state).
+     */
+    isVerified?: boolean;
+    /**
+     * Optional custom instruction prompt override.
+     */
+    instructionText?: string;
+    /**
      * Optional custom overlay to render on top of the camera preview.
      */
     children?: React.ReactNode;

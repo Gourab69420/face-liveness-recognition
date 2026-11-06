@@ -6,6 +6,7 @@ export interface FaceLivenessOverlayProps {
     activeChallenge?: ChallengeType | 'none';
     instructionText?: string;
     isAnalyzing?: boolean;
+    isVerified?: boolean;
 }
 export declare const FaceLivenessOverlay: React.FC<FaceLivenessOverlayProps>;
 //# sourceMappingURL=FaceLivenessOverlay.d.ts.map

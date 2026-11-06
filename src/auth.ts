@@ -1,5 +1,7 @@
 import { LivenessResult, EnrolledProfile } from './types';
 
+declare const Buffer: any;
+
 /**
  * Universal User Biometric Profile stored in the database.
  */

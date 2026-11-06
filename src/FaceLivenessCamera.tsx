@@ -28,6 +28,8 @@ export const FaceLivenessCamera: React.FC<FaceLivenessCameraProps> = ({
   onError,
   onPermissionDenied,
   showOverlay = true,
+  isVerified = false,
+  instructionText,
   children,
   style,
 }) => {
@@ -151,20 +153,21 @@ export const FaceLivenessCamera: React.FC<FaceLivenessCameraProps> = ({
     );
   }
 
-  const mode = directMode ?? config.mode ?? 'liveness_and_recognition';
+  const cfg = (config || {}) as any;
+  const mode = directMode ?? cfg.mode ?? 'liveness_and_recognition';
   const challenges =
     directChallenges ??
-    config.challenges ??
+    cfg.challenges ??
     (mode === 'liveness_and_recognition' ? ['smile'] : []);
-  const enrolledProfiles = directProfiles ?? config.enrolledProfiles ?? [];
-  const securityLevel = directSecLevel ?? config.securityLevel ?? 'balanced';
+  const enrolledProfiles = directProfiles ?? cfg.enrolledProfiles ?? [];
+  const securityLevel = directSecLevel ?? cfg.securityLevel ?? 'balanced';
   const recognitionThreshold =
     directRecThreshold ??
-    config.recognitionThreshold ??
+    cfg.recognitionThreshold ??
     (securityLevel === 'strict' ? 0.68 : securityLevel === 'relaxed' ? 0.50 : 0.58);
-  const liveThreshold = config.liveThreshold ?? (securityLevel === 'relaxed' ? 0.35 : 0.40);
-  const spoofThreshold = config.spoofThreshold ?? (securityLevel === 'relaxed' ? 0.25 : 0.30);
-  const customModelPath = config.customModelPath;
+  const liveThreshold = cfg.liveThreshold ?? (securityLevel === 'relaxed' ? 0.35 : 0.40);
+  const spoofThreshold = cfg.spoofThreshold ?? (securityLevel === 'relaxed' ? 0.25 : 0.30);
+  const customModelPath = cfg.customModelPath;
 
   return (
     <View style={[styles.container, style]}>
@@ -191,6 +194,8 @@ export const FaceLivenessCamera: React.FC<FaceLivenessCameraProps> = ({
           progress={currentProgress}
           activeChallenge={currentProgress?.activeChallenge ?? 'none'}
           isAnalyzing={active}
+          isVerified={isVerified}
+          instructionText={instructionText}
         />
       )}
 

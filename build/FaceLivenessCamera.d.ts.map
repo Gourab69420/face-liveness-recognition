@@ -1,1 +1,1 @@
-{"version":3,"file":"FaceLivenessCamera.d.ts","sourceRoot":"","sources":["../src/FaceLivenessCamera.tsx"],"names":[],"mappings":"AAAA,OAAO,KAAmD,MAAM,OAAO,CAAC;AAExE,OAAO,EACL,uBAAuB,EAMxB,MAAM,SAAS,CAAC;AAOjB,eAAO,MAAM,kBAAkB,EAAE,KAAK,CAAC,EAAE,CAAC,uBAAuB,CAuLhE,CAAC"}
+{"version":3,"file":"FaceLivenessCamera.d.ts","sourceRoot":"","sources":["../src/FaceLivenessCamera.tsx"],"names":[],"mappings":"AAAA,OAAO,KAAmD,MAAM,OAAO,CAAC;AAExE,OAAO,EACL,uBAAuB,EAMxB,MAAM,SAAS,CAAC;AAOjB,eAAO,MAAM,kBAAkB,EAAE,KAAK,CAAC,EAAE,CAAC,uBAAuB,CA4LhE,CAAC"}

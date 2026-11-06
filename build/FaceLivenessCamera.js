@@ -38,7 +38,7 @@ const react_1 = __importStar(require("react"));
 const react_native_1 = require("react-native");
 const NativeExpoFaceLiveness_1 = require("./NativeExpoFaceLiveness");
 const FaceLivenessOverlay_1 = require("./FaceLivenessOverlay");
-const FaceLivenessCamera = ({ active = true, config = {}, challenges: directChallenges, enrolledProfiles: directProfiles, mode: directMode, recognitionThreshold: directRecThreshold, securityLevel: directSecLevel, onFaceStatusChanged, onProgress, onResult, onError, onPermissionDenied, showOverlay = true, children, style, }) => {
+const FaceLivenessCamera = ({ active = true, config = {}, challenges: directChallenges, enrolledProfiles: directProfiles, mode: directMode, recognitionThreshold: directRecThreshold, securityLevel: directSecLevel, onFaceStatusChanged, onProgress, onResult, onError, onPermissionDenied, showOverlay = true, isVerified = false, instructionText, children, style, }) => {
     const [permission, setPermission] = (0, react_1.useState)(null);
     const [currentFaceStatus, setCurrentFaceStatus] = (0, react_1.useState)({
         status: 'no_face',
@@ -116,21 +116,22 @@ const FaceLivenessCamera = ({ active = true, config = {}, challenges: directChal
             react_1.default.createElement(react_native_1.TouchableOpacity, { style: styles.permissionButton, onPress: requestPermission },
                 react_1.default.createElement(react_native_1.Text, { style: styles.permissionButtonText }, "Grant Permission"))));
     }
-    const mode = directMode ?? config.mode ?? 'liveness_and_recognition';
+    const cfg = (config || {});
+    const mode = directMode ?? cfg.mode ?? 'liveness_and_recognition';
     const challenges = directChallenges ??
-        config.challenges ??
+        cfg.challenges ??
         (mode === 'liveness_and_recognition' ? ['smile'] : []);
-    const enrolledProfiles = directProfiles ?? config.enrolledProfiles ?? [];
-    const securityLevel = directSecLevel ?? config.securityLevel ?? 'balanced';
+    const enrolledProfiles = directProfiles ?? cfg.enrolledProfiles ?? [];
+    const securityLevel = directSecLevel ?? cfg.securityLevel ?? 'balanced';
     const recognitionThreshold = directRecThreshold ??
-        config.recognitionThreshold ??
+        cfg.recognitionThreshold ??
         (securityLevel === 'strict' ? 0.68 : securityLevel === 'relaxed' ? 0.50 : 0.58);
-    const liveThreshold = config.liveThreshold ?? (securityLevel === 'relaxed' ? 0.35 : 0.40);
-    const spoofThreshold = config.spoofThreshold ?? (securityLevel === 'relaxed' ? 0.25 : 0.30);
-    const customModelPath = config.customModelPath;
+    const liveThreshold = cfg.liveThreshold ?? (securityLevel === 'relaxed' ? 0.35 : 0.40);
+    const spoofThreshold = cfg.spoofThreshold ?? (securityLevel === 'relaxed' ? 0.25 : 0.30);
+    const customModelPath = cfg.customModelPath;
     return (react_1.default.createElement(react_native_1.View, { style: [styles.container, style] },
         react_1.default.createElement(NativeExpoFaceLiveness_1.NativeFaceLivenessView, { style: react_native_1.StyleSheet.absoluteFill, active: active, liveThreshold: liveThreshold, spoofThreshold: spoofThreshold, recognitionThreshold: recognitionThreshold, securityLevel: securityLevel, mode: mode, enrolledProfiles: enrolledProfiles, challenges: challenges, customModelPath: customModelPath, onFaceStatusChanged: handleFaceStatusChanged, onLivenessProgress: handleProgress, onLivenessResult: handleResult, onError: handleError }),
-        showOverlay && (react_1.default.createElement(FaceLivenessOverlay_1.FaceLivenessOverlay, { faceStatus: currentFaceStatus.status, progress: currentProgress, activeChallenge: currentProgress?.activeChallenge ?? 'none', isAnalyzing: active })),
+        showOverlay && (react_1.default.createElement(FaceLivenessOverlay_1.FaceLivenessOverlay, { faceStatus: currentFaceStatus.status, progress: currentProgress, activeChallenge: currentProgress?.activeChallenge ?? 'none', isAnalyzing: active, isVerified: isVerified, instructionText: instructionText })),
         children));
 };
 exports.FaceLivenessCamera = FaceLivenessCamera;
