@@ -27,8 +27,8 @@ class FaceLivenessCameraView(context: Context, appContext: AppContext) : ExpoVie
     private val previewView: PreviewView = PreviewView(context).apply {
         layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT)
         scaleType = PreviewView.ScaleType.FILL_CENTER
-        // Use COMPATIBLE (TextureView) for reliable rendering within React Native view hierarchy
-        implementationMode = PreviewView.ImplementationMode.COMPATIBLE
+        // PERFORMANCE mode uses hardware SurfaceView for instant 60 FPS camera initialization
+        implementationMode = PreviewView.ImplementationMode.PERFORMANCE
     }
 
     private var cameraExecutor: ExecutorService = Executors.newSingleThreadExecutor()
@@ -196,10 +196,19 @@ class FaceLivenessCameraView(context: Context, appContext: AppContext) : ExpoVie
             return
         }
 
-        val cameraProviderFuture = ProcessCameraProvider.getInstance(context)
+        val cached = cachedCameraProvider
+        if (cached != null) {
+            cameraProvider = cached
+            bindCameraUseCases()
+            return
+        }
+
+        val cameraProviderFuture = ProcessCameraProvider.getInstance(context.applicationContext)
         cameraProviderFuture.addListener({
             try {
-                cameraProvider = cameraProviderFuture.get()
+                val provider = cameraProviderFuture.get()
+                cachedCameraProvider = provider
+                cameraProvider = provider
                 bindCameraUseCases()
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to initialize ProcessCameraProvider: ${e.message}", e)
@@ -231,11 +240,11 @@ class FaceLivenessCameraView(context: Context, appContext: AppContext) : ExpoVie
         }
 
         if (classifier == null) {
-            classifier = MiniFASNetClassifier(context, customModelPath)
+            classifier = getOrCreateClassifier(context, customModelPath)
         }
 
         if (recognizer == null) {
-            recognizer = MobileFaceNetRecognizer(context)
+            recognizer = getOrCreateRecognizer(context)
         }
 
         if (analyzer == null) {
@@ -255,11 +264,14 @@ class FaceLivenessCameraView(context: Context, appContext: AppContext) : ExpoVie
             analyzer?.startCheck(this.challenges)
         }
 
-        val preview = Preview.Builder().build().also {
-            it.setSurfaceProvider(previewView.surfaceProvider)
-        }
+        val preview = Preview.Builder()
+            .setTargetAspectRatio(androidx.camera.core.AspectRatio.RATIO_4_3)
+            .build().also {
+                it.setSurfaceProvider(previewView.surfaceProvider)
+            }
 
         val imageAnalysisBuilder = ImageAnalysis.Builder()
+            .setTargetAspectRatio(androidx.camera.core.AspectRatio.RATIO_4_3)
             .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
 
         try {
@@ -418,5 +430,39 @@ class FaceLivenessCameraView(context: Context, appContext: AppContext) : ExpoVie
 
     companion object {
         private const val TAG = "FaceLivenessCameraView"
+
+        @Volatile
+        private var cachedCameraProvider: ProcessCameraProvider? = null
+
+        @Volatile
+        private var cachedClassifier: MiniFASNetClassifier? = null
+
+        @Volatile
+        private var cachedRecognizer: MobileFaceNetRecognizer? = null
+
+        init {
+            try {
+                OpenCVUtils.init()
+            } catch (_: Throwable) {}
+        }
+
+        fun getOrCreateClassifier(context: Context, customPath: String?): MiniFASNetClassifier {
+            if (customPath != null) {
+                return MiniFASNetClassifier(context.applicationContext, customPath)
+            }
+            return cachedClassifier ?: synchronized(this) {
+                cachedClassifier ?: MiniFASNetClassifier(context.applicationContext).also {
+                    cachedClassifier = it
+                }
+            }
+        }
+
+        fun getOrCreateRecognizer(context: Context): MobileFaceNetRecognizer {
+            return cachedRecognizer ?: synchronized(this) {
+                cachedRecognizer ?: MobileFaceNetRecognizer(context.applicationContext).also {
+                    cachedRecognizer = it
+                }
+            }
+        }
     }
 }

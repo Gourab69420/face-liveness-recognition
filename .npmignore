@@ -1,0 +1,18 @@
+# Tests
+src/__tests__/
+__tests__/
+jest.config.js
+
+# Exclude source maps from published package to keep it lightweight
+build/**/*.map
+
+# Local Android build artifacts
+android/build/
+android/.gradle/
+android/.idea/
+android/*.iml
+
+# System and logs
+*.log
+.DS_Store
+Thumbs.db

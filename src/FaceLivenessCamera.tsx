@@ -46,7 +46,17 @@ export const FaceLivenessCamera: React.FC<FaceLivenessCameraProps> = ({
     pitch: 0,
   });
   const [currentProgress, setCurrentProgress] = useState<LivenessProgress | null>(null);
-  const randomChallengeRef = useRef<ChallengeType>(getRandomChallenge());
+  const [sessionChallenge, setSessionChallenge] = useState<ChallengeType>(() => getRandomChallenge());
+
+  // Automatically cycle challenge when session restarts without unmounting camera
+  const prevActiveRef = useRef(active);
+  useEffect(() => {
+    if (!prevActiveRef.current && active && randomizeChallenges) {
+      setSessionChallenge(getRandomChallenge());
+      setCurrentProgress(null);
+    }
+    prevActiveRef.current = active;
+  }, [active, randomizeChallenges]);
 
   const requestPermission = useCallback(async () => {
     try {
@@ -166,7 +176,7 @@ export const FaceLivenessCamera: React.FC<FaceLivenessCameraProps> = ({
     directChallenges ??
     cfg.challenges ??
     (randomizeChallenges
-      ? [randomChallengeRef.current]
+      ? [sessionChallenge]
       : mode === 'liveness_and_recognition'
       ? ['smile']
       : []);

@@ -47,7 +47,16 @@ const FaceLivenessCamera = ({ active = true, config = {}, challenges: directChal
         pitch: 0,
     });
     const [currentProgress, setCurrentProgress] = (0, react_1.useState)(null);
-    const randomChallengeRef = (0, react_1.useRef)((0, challenges_1.getRandomChallenge)());
+    const [sessionChallenge, setSessionChallenge] = (0, react_1.useState)(() => (0, challenges_1.getRandomChallenge)());
+    // Automatically cycle challenge when session restarts without unmounting camera
+    const prevActiveRef = (0, react_1.useRef)(active);
+    (0, react_1.useEffect)(() => {
+        if (!prevActiveRef.current && active && randomizeChallenges) {
+            setSessionChallenge((0, challenges_1.getRandomChallenge)());
+            setCurrentProgress(null);
+        }
+        prevActiveRef.current = active;
+    }, [active, randomizeChallenges]);
     const requestPermission = (0, react_1.useCallback)(async () => {
         try {
             const res = await NativeExpoFaceLiveness_1.NativeFaceLivenessModule.requestCameraPermissionsAsync();
@@ -123,7 +132,7 @@ const FaceLivenessCamera = ({ active = true, config = {}, challenges: directChal
     const challenges = directChallenges ??
         cfg.challenges ??
         (randomizeChallenges
-            ? [randomChallengeRef.current]
+            ? [sessionChallenge]
             : mode === 'liveness_and_recognition'
                 ? ['smile']
                 : []);

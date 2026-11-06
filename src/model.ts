@@ -21,10 +21,10 @@ export const MINIFASNET_MODEL_SPEC = {
   cropScaleFactor: 2.7,
   outputClasses: {
     0: 'spoof_print',
-    1: 'live_genuine',
-    2: 'spoof_screen_or_mask',
+    1: 'spoof_screen_or_mask',
+    2: 'live_genuine',
   },
-  liveClassIndex: 1,
+  liveClassIndex: 2,
   defaultLiveThreshold: 0.85,
   defaultSpoofThreshold: 0.40,
   upstreamLicense: 'Apache-2.0',
