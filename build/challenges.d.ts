@@ -8,10 +8,16 @@ export declare const CHALLENGE_INSTRUCTIONS: Record<ChallengeType, string>;
  */
 export declare const DEFAULT_CHALLENGE_POOL: ChallengeType[];
 /**
- * Returns a randomized challenge from the pool.
- * Guarantees unpredictable prompts on every verification session.
+ * Returns a challenge from the pool.
+ * Cycles sequentially through the pool (turn_head_left -> turn_head_right -> smile -> blink)
+ * so that ALL challenges, especially turning head right and left, are guaranteed to appear
+ * on subsequent scans and never skipped or starved.
  */
 export declare function getRandomChallenge(pool?: ChallengeType[]): ChallengeType;
+/**
+ * Resets the rotation sequence index back to 0.
+ */
+export declare function resetChallengeRotation(): void;
 /**
  * Returns an array of N unique randomized challenges.
  */

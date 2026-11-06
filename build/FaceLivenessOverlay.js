@@ -184,13 +184,17 @@ const BiometricPromptAvatar = ({ challenge, isVerified = false, faceStatus = 'fa
     // Dynamic colors & translucent opacity
     const primaryColor = isVerified ? '#10B981' : '#FFFFFF';
     const effectiveOpacity = isVerified ? 0.85 : hologramOpacity;
-    const headRotation = headRotateAnim.interpolate({
+    const headYawRotation = headRotateAnim.interpolate({
         inputRange: [-1, 0, 1],
-        outputRange: ['-20deg', '0deg', '20deg'],
+        outputRange: ['-35deg', '0deg', '35deg'],
     });
     const headOffset = headRotateAnim.interpolate({
         inputRange: [-1, 0, 1],
-        outputRange: [-16, 0, 16],
+        outputRange: [-20, 0, 20],
+    });
+    const facialFeaturesOffset = headRotateAnim.interpolate({
+        inputRange: [-1, 0, 1],
+        outputRange: [-15, 0, 15],
     });
     const arrowOpacity = arrowPulseAnim.interpolate({
         inputRange: [0, 1],
@@ -219,46 +223,55 @@ const BiometricPromptAvatar = ({ challenge, isVerified = false, faceStatus = 'fa
                 styles.headOutline,
                 {
                     borderColor: primaryColor,
-                    transform: [{ rotateZ: headRotation }, { translateX: headOffset }],
+                    transform: [
+                        { perspective: 800 },
+                        { rotateY: headYawRotation },
+                        { translateX: headOffset },
+                    ],
                 },
             ] },
             react_1.default.createElement(react_native_1.View, { style: [styles.foreheadSensor, { backgroundColor: primaryColor }] }),
-            react_1.default.createElement(react_native_1.View, { style: styles.eyesRow },
-                react_1.default.createElement(react_native_1.Animated.View, { style: [
-                        styles.eyePill,
-                        {
-                            backgroundColor: primaryColor,
-                            transform: [{ scaleY: eyeBlinkAnim }],
-                        },
-                    ] }),
-                react_1.default.createElement(react_native_1.Animated.View, { style: [
-                        styles.eyePill,
-                        {
-                            backgroundColor: primaryColor,
-                            transform: [{ scaleY: eyeBlinkAnim }],
-                        },
-                    ] })),
-            react_1.default.createElement(react_native_1.View, { style: [styles.noseLine, { backgroundColor: primaryColor }] }),
-            challenge === 'smile' ? (react_1.default.createElement(react_native_1.Animated.View, { style: [
-                    styles.mouthSmile,
-                    {
-                        borderColor: primaryColor,
-                        transform: [
+            react_1.default.createElement(react_native_1.Animated.View, { style: {
+                    width: '100%',
+                    alignItems: 'center',
+                    transform: [{ translateX: facialFeaturesOffset }],
+                } },
+                react_1.default.createElement(react_native_1.View, { style: styles.eyesRow },
+                    react_1.default.createElement(react_native_1.Animated.View, { style: [
+                            styles.eyePill,
                             {
-                                scaleY: mouthCurveAnim.interpolate({
-                                    inputRange: [0, 1],
-                                    outputRange: [0.3, 1.3],
-                                }),
+                                backgroundColor: primaryColor,
+                                transform: [{ scaleY: eyeBlinkAnim }],
                             },
+                        ] }),
+                    react_1.default.createElement(react_native_1.Animated.View, { style: [
+                            styles.eyePill,
                             {
-                                scaleX: mouthCurveAnim.interpolate({
-                                    inputRange: [0, 1],
-                                    outputRange: [0.8, 1.25],
-                                }),
+                                backgroundColor: primaryColor,
+                                transform: [{ scaleY: eyeBlinkAnim }],
                             },
-                        ],
-                    },
-                ] })) : (react_1.default.createElement(react_native_1.View, { style: [styles.mouthNeutral, { backgroundColor: primaryColor }] }))),
+                        ] })),
+                react_1.default.createElement(react_native_1.View, { style: [styles.noseLine, { backgroundColor: primaryColor }] }),
+                challenge === 'smile' ? (react_1.default.createElement(react_native_1.Animated.View, { style: [
+                        styles.mouthSmile,
+                        {
+                            borderColor: primaryColor,
+                            transform: [
+                                {
+                                    scaleY: mouthCurveAnim.interpolate({
+                                        inputRange: [0, 1],
+                                        outputRange: [0.3, 1.3],
+                                    }),
+                                },
+                                {
+                                    scaleX: mouthCurveAnim.interpolate({
+                                        inputRange: [0, 1],
+                                        outputRange: [0.8, 1.25],
+                                    }),
+                                },
+                            ],
+                        },
+                    ] })) : (react_1.default.createElement(react_native_1.View, { style: [styles.mouthNeutral, { backgroundColor: primaryColor }] })))),
         challenge === 'turn_head_right' && (react_1.default.createElement(react_native_1.Animated.View, { style: [
                 styles.chevronGroup,
                 styles.chevronRight,

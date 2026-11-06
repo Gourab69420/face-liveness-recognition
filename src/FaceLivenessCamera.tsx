@@ -203,7 +203,13 @@ export const FaceLivenessCamera: React.FC<FaceLivenessCameraProps> = ({
         <FaceLivenessOverlay
           faceStatus={currentFaceStatus.status}
           progress={currentProgress}
-          activeChallenge={currentProgress?.activeChallenge ?? 'none'}
+          activeChallenge={
+            currentProgress?.activeChallenge && currentProgress.activeChallenge !== 'none'
+              ? currentProgress.activeChallenge
+              : challenges.length > 0
+              ? challenges[0]
+              : 'none'
+          }
           isAnalyzing={active}
           isVerified={isVerified}
           instructionText={instructionText}

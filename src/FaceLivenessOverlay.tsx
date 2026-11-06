@@ -192,14 +192,19 @@ const BiometricPromptAvatar: React.FC<{
   const primaryColor = isVerified ? '#10B981' : '#FFFFFF';
   const effectiveOpacity = isVerified ? 0.85 : hologramOpacity;
 
-  const headRotation = headRotateAnim.interpolate({
+  const headYawRotation = headRotateAnim.interpolate({
     inputRange: [-1, 0, 1],
-    outputRange: ['-20deg', '0deg', '20deg'],
+    outputRange: ['-35deg', '0deg', '35deg'],
   });
 
   const headOffset = headRotateAnim.interpolate({
     inputRange: [-1, 0, 1],
-    outputRange: [-16, 0, 16],
+    outputRange: [-20, 0, 20],
+  });
+
+  const facialFeaturesOffset = headRotateAnim.interpolate({
+    inputRange: [-1, 0, 1],
+    outputRange: [-15, 0, 15],
   });
 
   const arrowOpacity = arrowPulseAnim.interpolate({
@@ -241,64 +246,76 @@ const BiometricPromptAvatar: React.FC<{
           styles.headOutline,
           {
             borderColor: primaryColor,
-            transform: [{ rotateZ: headRotation }, { translateX: headOffset }],
+            transform: [
+              { perspective: 800 },
+              { rotateY: headYawRotation },
+              { translateX: headOffset },
+            ],
           },
         ]}>
         {/* Forehead biometric scan bar */}
         <View style={[styles.foreheadSensor, { backgroundColor: primaryColor }]} />
 
-        {/* Eyes Row */}
-        <View style={styles.eyesRow}>
-          <Animated.View
-            style={[
-              styles.eyePill,
-              {
-                backgroundColor: primaryColor,
-                transform: [{ scaleY: eyeBlinkAnim }],
-              },
-            ]}
-          />
-          <Animated.View
-            style={[
-              styles.eyePill,
-              {
-                backgroundColor: primaryColor,
-                transform: [{ scaleY: eyeBlinkAnim }],
-              },
-            ]}
-          />
-        </View>
+        {/* Inner facial features shift in 3D turn direction */}
+        <Animated.View
+          style={{
+            width: '100%',
+            alignItems: 'center',
+            transform: [{ translateX: facialFeaturesOffset }],
+          }}>
+          {/* Eyes Row */}
+          <View style={styles.eyesRow}>
+            <Animated.View
+              style={[
+                styles.eyePill,
+                {
+                  backgroundColor: primaryColor,
+                  transform: [{ scaleY: eyeBlinkAnim }],
+                },
+              ]}
+            />
+            <Animated.View
+              style={[
+                styles.eyePill,
+                {
+                  backgroundColor: primaryColor,
+                  transform: [{ scaleY: eyeBlinkAnim }],
+                },
+              ]}
+            />
+          </View>
 
-        {/* Nose Bridge */}
-        <View style={[styles.noseLine, { backgroundColor: primaryColor }]} />
+          {/* Nose Bridge */}
+          <View style={[styles.noseLine, { backgroundColor: primaryColor }]} />
 
-        {/* Mouth Shape (Neutral or Animated Upward Curve for Smile) */}
-        {challenge === 'smile' ? (
-          <Animated.View
-            style={[
-              styles.mouthSmile,
-              {
-                borderColor: primaryColor,
-                transform: [
-                  {
-                    scaleY: mouthCurveAnim.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [0.3, 1.3],
-                    }),
-                  },
-                  {
-                    scaleX: mouthCurveAnim.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [0.8, 1.25],
-                    }),
-                  },
-                ],
-              },
-            ]}
-          />
-        ) : (
-          <View style={[styles.mouthNeutral, { backgroundColor: primaryColor }]} />
-        )}
+          {/* Mouth Shape (Neutral or Animated Upward Curve for Smile) */}
+          {challenge === 'smile' ? (
+            <Animated.View
+              style={[
+                styles.mouthSmile,
+                {
+                  borderColor: primaryColor,
+                  transform: [
+                    {
+                      scaleY: mouthCurveAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [0.3, 1.3],
+                      }),
+                    },
+                    {
+                      scaleX: mouthCurveAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [0.8, 1.25],
+                      }),
+                    },
+                  ],
+                },
+              ]}
+            />
+          ) : (
+            <View style={[styles.mouthNeutral, { backgroundColor: primaryColor }]} />
+          )}
+        </Animated.View>
       </Animated.View>
 
       {/* Right Chevron Guide (When turning right) */}

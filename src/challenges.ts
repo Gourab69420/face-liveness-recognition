@@ -21,13 +21,26 @@ export const DEFAULT_CHALLENGE_POOL: ChallengeType[] = [
   'blink',
 ];
 
+let rotatingIndex = 0;
+
 /**
- * Returns a randomized challenge from the pool.
- * Guarantees unpredictable prompts on every verification session.
+ * Returns a challenge from the pool.
+ * Cycles sequentially through the pool (turn_head_left -> turn_head_right -> smile -> blink)
+ * so that ALL challenges, especially turning head right and left, are guaranteed to appear
+ * on subsequent scans and never skipped or starved.
  */
 export function getRandomChallenge(pool: ChallengeType[] = DEFAULT_CHALLENGE_POOL): ChallengeType {
-  const index = Math.floor(Math.random() * pool.length);
-  return pool[index];
+  if (pool.length === 0) return 'smile';
+  const item = pool[rotatingIndex % pool.length];
+  rotatingIndex = (rotatingIndex + 1) % pool.length;
+  return item;
+}
+
+/**
+ * Resets the rotation sequence index back to 0.
+ */
+export function resetChallengeRotation() {
+  rotatingIndex = 0;
 }
 
 /**

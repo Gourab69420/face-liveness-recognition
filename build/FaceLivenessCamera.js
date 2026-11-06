@@ -137,7 +137,11 @@ const FaceLivenessCamera = ({ active = true, config = {}, challenges: directChal
     const customModelPath = cfg.customModelPath;
     return (react_1.default.createElement(react_native_1.View, { style: [styles.container, style] },
         react_1.default.createElement(NativeExpoFaceLiveness_1.NativeFaceLivenessView, { style: react_native_1.StyleSheet.absoluteFill, active: active, liveThreshold: liveThreshold, spoofThreshold: spoofThreshold, recognitionThreshold: recognitionThreshold, securityLevel: securityLevel, mode: mode, enrolledProfiles: enrolledProfiles, challenges: challenges, customModelPath: customModelPath, onFaceStatusChanged: handleFaceStatusChanged, onLivenessProgress: handleProgress, onLivenessResult: handleResult, onError: handleError }),
-        showOverlay && (react_1.default.createElement(FaceLivenessOverlay_1.FaceLivenessOverlay, { faceStatus: currentFaceStatus.status, progress: currentProgress, activeChallenge: currentProgress?.activeChallenge ?? 'none', isAnalyzing: active, isVerified: isVerified, instructionText: instructionText, showHologram: showHologram, hologramOpacity: hologramOpacity, showTopStatus: showTopStatus })),
+        showOverlay && (react_1.default.createElement(FaceLivenessOverlay_1.FaceLivenessOverlay, { faceStatus: currentFaceStatus.status, progress: currentProgress, activeChallenge: currentProgress?.activeChallenge && currentProgress.activeChallenge !== 'none'
+                ? currentProgress.activeChallenge
+                : challenges.length > 0
+                    ? challenges[0]
+                    : 'none', isAnalyzing: active, isVerified: isVerified, instructionText: instructionText, showHologram: showHologram, hologramOpacity: hologramOpacity, showTopStatus: showTopStatus })),
         children));
 };
 exports.FaceLivenessCamera = FaceLivenessCamera;
