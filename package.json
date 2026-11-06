@@ -1,6 +1,6 @@
 {
   "name": "face-liveness-recognition",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "On-device face liveness detection, anti-spoofing, and face recognition for React Native and Expo",
   "main": "build/index.js",
   "types": "build/index.d.ts",
@@ -21,7 +21,7 @@
     "mobilefacenet",
     "minifasnet"
   ],
-  "author": "Gourab",
+  "author": "Gourab Samanta <gourabsamanta35@gmail.com> (https://github.com/Gourab69420)",
   "license": "MIT",
   "repository": {
     "type": "git",

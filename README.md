@@ -544,7 +544,17 @@ interface LivenessResult {
 
 ---
 
+## Author & Credits
+
+Developed and maintained by **Gourab Samanta** ([@Gourab69420](https://github.com/Gourab69420)).
+
+* **GitHub:** [https://github.com/Gourab69420/face-liveness-recognition](https://github.com/Gourab69420/face-liveness-recognition)
+* **npm:** [https://www.npmjs.com/package/face-liveness-recognition](https://www.npmjs.com/package/face-liveness-recognition)
+* **Issues & Feedback:** [GitHub Issue Tracker](https://github.com/Gourab69420/face-liveness-recognition/issues)
+
+---
+
 ## License
 
-MIT License.
-Protected under open-source terms. MiniFASNet and MobileFaceNet weights licensed under Apache License 2.0.
+MIT License © 2026 **Gourab Samanta**. Free and open for personal and commercial use.  
+MiniFASNet and MobileFaceNet neural model weights are licensed under Apache License 2.0 (see [MODEL_LICENSE.md](MODEL_LICENSE.md)).
