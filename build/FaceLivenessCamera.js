@@ -124,9 +124,9 @@ const FaceLivenessCamera = ({ active = true, config = {}, challenges: directChal
     const securityLevel = directSecLevel ?? config.securityLevel ?? 'balanced';
     const recognitionThreshold = directRecThreshold ??
         config.recognitionThreshold ??
-        (securityLevel === 'strict' ? 0.72 : securityLevel === 'relaxed' ? 0.55 : 0.62);
-    const liveThreshold = config.liveThreshold ?? (securityLevel === 'relaxed' ? 0.35 : 0.42);
-    const spoofThreshold = config.spoofThreshold ?? (securityLevel === 'relaxed' ? 0.25 : 0.35);
+        (securityLevel === 'strict' ? 0.68 : securityLevel === 'relaxed' ? 0.50 : 0.58);
+    const liveThreshold = config.liveThreshold ?? (securityLevel === 'relaxed' ? 0.35 : 0.40);
+    const spoofThreshold = config.spoofThreshold ?? (securityLevel === 'relaxed' ? 0.25 : 0.30);
     const customModelPath = config.customModelPath;
     return (react_1.default.createElement(react_native_1.View, { style: [styles.container, style] },
         react_1.default.createElement(NativeExpoFaceLiveness_1.NativeFaceLivenessView, { style: react_native_1.StyleSheet.absoluteFill, active: active, liveThreshold: liveThreshold, spoofThreshold: spoofThreshold, recognitionThreshold: recognitionThreshold, securityLevel: securityLevel, mode: mode, enrolledProfiles: enrolledProfiles, challenges: challenges, customModelPath: customModelPath, onFaceStatusChanged: handleFaceStatusChanged, onLivenessProgress: handleProgress, onLivenessResult: handleResult, onError: handleError }),

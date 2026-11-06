@@ -1,4 +1,10 @@
-const { withPlugins, withAndroidManifest, createRunOncePlugin } = require('@expo/config-plugins');
+let configPlugins;
+try {
+  configPlugins = require('@expo/config-plugins');
+} catch {
+  configPlugins = require(require.resolve('@expo/config-plugins', { paths: [process.cwd()] }));
+}
+const { withPlugins, withAndroidManifest, createRunOncePlugin } = configPlugins;
 
 const pkg = require('./package.json');
 

@@ -22,8 +22,8 @@ import kotlin.math.sqrt
 class FaceLivenessAnalyzer(
     private val classifier: MiniFASNetClassifier,
     private val recognizer: MobileFaceNetRecognizer? = null,
-    private val liveThreshold: Float = 0.50f,
-    private val spoofThreshold: Float = 0.35f,
+    var liveThreshold: Float = 0.50f,
+    var spoofThreshold: Float = 0.35f,
     private val requiredSamples: Int = 4,
     private val sampleIntervalMs: Long = 150L,
     private val listener: Listener
@@ -58,7 +58,7 @@ class FaceLivenessAnalyzer(
         val options = FaceDetectorOptions.Builder()
             .setPerformanceMode(FaceDetectorOptions.PERFORMANCE_MODE_FAST)
             .setClassificationMode(FaceDetectorOptions.CLASSIFICATION_MODE_ALL)
-            .setLandmarkMode(FaceDetectorOptions.LANDMARK_MODE_ALL)
+            .setLandmarkMode(FaceDetectorOptions.LANDMARK_MODE_NONE)
             .setContourMode(FaceDetectorOptions.CONTOUR_MODE_NONE)
             .enableTracking()
             .build()

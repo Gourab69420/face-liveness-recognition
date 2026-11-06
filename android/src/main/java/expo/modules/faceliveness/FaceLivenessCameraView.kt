@@ -147,18 +147,19 @@ class FaceLivenessCameraView(context: Context, appContext: AppContext) : ExpoVie
         when (level.lowercase()) {
             "relaxed" -> {
                 this.liveThreshold = 0.35f
-                this.recognitionThreshold = 0.55f
+                this.recognitionThreshold = 0.50f
             }
             "strict" -> {
-                this.liveThreshold = 0.60f
-                this.recognitionThreshold = 0.72f
+                this.liveThreshold = 0.55f
+                this.recognitionThreshold = 0.68f
             }
             else -> {
-                this.liveThreshold = 0.42f
-                this.recognitionThreshold = 0.62f
+                this.liveThreshold = 0.40f
+                this.recognitionThreshold = 0.58f
             }
         }
         analyzer?.matchThreshold = this.recognitionThreshold
+        analyzer?.liveThreshold = this.liveThreshold
     }
 
     fun setChallenges(challengeNames: List<String>) {

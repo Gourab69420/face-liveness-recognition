@@ -92,15 +92,20 @@ class MiniFASNetClassifier(
         val isAlreadySoftmax = (raw.all { it >= 0f } && kotlin.math.abs(raw.sum() - 1.0f) < 0.05f)
         val probs = if (isAlreadySoftmax) raw else softmax(raw)
 
-        // MiniFASNet class 1 is Live/Real face. Classes 0 and 2 are Presentation Attack / Spoof.
-        val liveScore = probs[1]
+        // In Silent-Face-Anti-Spoofing (MiniFASNet) 3-class models:
+        // Index 0: 2D Paper photo spoof
+        // Index 1: 2D Screen replay spoof
+        // Index 2: Real / Live 3D face
+        val liveIndex = if (probs.size > 2) 2 else 1
+        val liveScore = probs[liveIndex]
         val argmaxIndex = argmax(probs)
+        val isLive = (argmaxIndex == liveIndex)
 
-        Log.d(TAG, "Inference raw=[${raw[0]}, ${raw[1]}, ${raw[2]}], probs=[${probs[0]}, ${probs[1]}, ${probs[2]}], liveScore=$liveScore, isLive=${argmaxIndex == 1}")
+        Log.d(TAG, "Inference raw=[${raw.joinToString()}], probs=[${probs.joinToString()}], liveScore=$liveScore, isLive=$isLive")
 
         return ClassifierOutput(
             liveScore = liveScore,
-            isArgmaxLive = (argmaxIndex == 1),
+            isArgmaxLive = isLive,
             probabilities = probs
         )
     }

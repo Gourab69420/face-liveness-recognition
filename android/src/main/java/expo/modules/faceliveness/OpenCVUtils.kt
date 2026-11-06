@@ -93,84 +93,16 @@ object OpenCVUtils {
         targetWidth: Int = 112,
         targetHeight: Int = 112
     ): Bitmap {
-        fun cropFromRect(): Bitmap {
-            if (faceRect != null && faceRect.width() > 0 && faceRect.height() > 0) {
-                return BitmapUtils.cropAndScaleFace(
-                    bitmap = srcBitmap,
-                    faceRect = faceRect,
-                    scaleFactor = 1.25f,
-                    targetWidth = targetWidth,
-                    targetHeight = targetHeight
-                )
-            }
-            return Bitmap.createScaledBitmap(srcBitmap, targetWidth, targetHeight, true)
-        }
-
-        if (!init() || leftEye == null || rightEye == null) {
-            return cropFromRect()
-        }
-
-        return try {
-            // Determine left-most eye on screen vs right-most eye on screen
-            val eyeLeft = if (leftEye.x <= rightEye.x) leftEye else rightEye
-            val eyeRight = if (leftEye.x <= rightEye.x) rightEye else leftEye
-
-            val dx = (eyeRight.x - eyeLeft.x).toDouble()
-            val dy = (eyeRight.y - eyeLeft.y).toDouble()
-            val currentDist = Math.hypot(dx, dy)
-
-            // If eye distance is negligible, fallback to bounding box crop
-            if (currentDist < 12.0) {
-                return cropFromRect()
-            }
-
-            // Upright head tilt angle (around 0 degrees)
-            val angle = Math.toDegrees(atan2(dy, dx))
-
-            val eyeCenter = Point(
-                ((eyeLeft.x + eyeRight.x) / 2.0),
-                ((eyeLeft.y + eyeRight.y) / 2.0)
+        if (faceRect != null && faceRect.width() > 0 && faceRect.height() > 0) {
+            return BitmapUtils.cropAndScaleFace(
+                bitmap = srcBitmap,
+                faceRect = faceRect,
+                scaleFactor = 1.25f,
+                targetWidth = targetWidth,
+                targetHeight = targetHeight
             )
-
-            // MobileFaceNet canonical reference eye distance on 112x112 is ~35.2px (31.5% of width)
-            val desiredDist = targetWidth * 0.315
-            val scale = desiredDist / currentDist
-
-            val rotMatrix = Imgproc.getRotationMatrix2D(eyeCenter, angle, scale)
-
-            // Desired eye center in output image (centered horizontally, ~44% from top)
-            val desiredCenterX = targetWidth / 2.0
-            val desiredCenterY = targetHeight * 0.44
-
-            rotMatrix.put(0, 2, rotMatrix.get(0, 2)[0] + (desiredCenterX - eyeCenter.x))
-            rotMatrix.put(1, 2, rotMatrix.get(1, 2)[0] + (desiredCenterY - eyeCenter.y))
-
-            val srcMat = Mat()
-            Utils.bitmapToMat(srcBitmap, srcMat)
-
-            val dstMat = Mat()
-            Imgproc.warpAffine(
-                srcMat,
-                dstMat,
-                rotMatrix,
-                Size(targetWidth.toDouble(), targetHeight.toDouble()),
-                Imgproc.INTER_LINEAR,
-                Core.BORDER_REPLICATE,
-                Scalar(0.0, 0.0, 0.0, 255.0)
-            )
-
-            val alignedBitmap = Bitmap.createBitmap(targetWidth, targetHeight, Bitmap.Config.ARGB_8888)
-            Utils.matToBitmap(dstMat, alignedBitmap)
-
-            srcMat.release()
-            rotMatrix.release()
-            dstMat.release()
-
-            alignedBitmap
-        } catch (e: Exception) {
-            Log.w(TAG, "OpenCV face alignment fallback: ${e.message}")
-            cropFromRect()
         }
+        return Bitmap.createScaledBitmap(srcBitmap, targetWidth, targetHeight, true)
     }
 
     /**

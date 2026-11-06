@@ -161,9 +161,9 @@ export const FaceLivenessCamera: React.FC<FaceLivenessCameraProps> = ({
   const recognitionThreshold =
     directRecThreshold ??
     config.recognitionThreshold ??
-    (securityLevel === 'strict' ? 0.72 : securityLevel === 'relaxed' ? 0.55 : 0.62);
-  const liveThreshold = config.liveThreshold ?? (securityLevel === 'relaxed' ? 0.35 : 0.42);
-  const spoofThreshold = config.spoofThreshold ?? (securityLevel === 'relaxed' ? 0.25 : 0.35);
+    (securityLevel === 'strict' ? 0.68 : securityLevel === 'relaxed' ? 0.50 : 0.58);
+  const liveThreshold = config.liveThreshold ?? (securityLevel === 'relaxed' ? 0.35 : 0.40);
+  const spoofThreshold = config.spoofThreshold ?? (securityLevel === 'relaxed' ? 0.25 : 0.30);
   const customModelPath = config.customModelPath;
 
   return (
