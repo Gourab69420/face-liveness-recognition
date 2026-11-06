@@ -35,6 +35,7 @@ export const FaceLivenessCamera: React.FC<FaceLivenessCameraProps> = ({
   randomizeChallenges = false,
   hologramOpacity = 0.38,
   showHologram = true,
+  showTopStatus = false,
   children,
   style,
 }) => {
@@ -208,6 +209,7 @@ export const FaceLivenessCamera: React.FC<FaceLivenessCameraProps> = ({
           instructionText={instructionText}
           showHologram={showHologram}
           hologramOpacity={hologramOpacity}
+          showTopStatus={showTopStatus}
         />
       )}
 

@@ -268,6 +268,11 @@ export interface FaceLivenessCameraProps {
      */
     showHologram?: boolean;
     /**
+     * Whether to display the top floating status capsule ("LIVE INFERENCE ENGINE").
+     * Default: false (avoids colliding with app navigation bars)
+     */
+    showTopStatus?: boolean;
+    /**
      * Optional custom overlay to render on top of the camera preview.
      */
     children?: React.ReactNode;

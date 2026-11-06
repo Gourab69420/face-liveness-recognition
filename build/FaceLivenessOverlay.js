@@ -270,7 +270,7 @@ const BiometricPromptAvatar = ({ challenge, isVerified = false, faceStatus = 'fa
             react_1.default.createElement(react_native_1.View, { style: [styles.chevronArrowRight, { borderLeftColor: primaryColor }] }),
             react_1.default.createElement(react_native_1.View, { style: [styles.chevronArrowRight, { borderLeftColor: primaryColor, marginLeft: 4 }] })))));
 };
-const FaceLivenessOverlay = ({ faceStatus = 'no_face', progress, activeChallenge = 'none', instructionText, isAnalyzing = false, isVerified = false, showHologram = true, hologramOpacity = 0.38, }) => {
+const FaceLivenessOverlay = ({ faceStatus = 'no_face', progress, activeChallenge = 'none', instructionText, isAnalyzing = false, isVerified = false, showHologram = true, hologramOpacity = 0.38, showTopStatus = false, }) => {
     const scanLineAnim = (0, react_1.useRef)(new react_native_1.Animated.Value(0)).current;
     // Radar beam sweep animation
     (0, react_1.useEffect)(() => {
@@ -331,10 +331,10 @@ const FaceLivenessOverlay = ({ faceStatus = 'no_face', progress, activeChallenge
         outputRange: [-ovalHeight / 2 + 10, ovalHeight / 2 - 10],
     });
     return (react_1.default.createElement(react_native_1.View, { style: styles.container, pointerEvents: "box-none" },
-        react_1.default.createElement(react_native_1.View, { style: styles.topContainer, pointerEvents: "none" },
+        showTopStatus && (react_1.default.createElement(react_native_1.View, { style: styles.topContainer, pointerEvents: "none" },
             react_1.default.createElement(react_native_1.View, { style: styles.topHudBadge },
                 react_1.default.createElement(react_native_1.View, { style: [styles.statusDot, { backgroundColor: isVerified ? '#10B981' : isAnalyzing ? '#3B82F6' : '#94A3B8' }] }),
-                react_1.default.createElement(react_native_1.Text, { style: styles.topHudTitle }, isVerified ? 'BIOMETRIC MATCH CONFIRMED' : isAnalyzing ? 'LIVE INFERENCE ENGINE' : 'READY TO SCAN'))),
+                react_1.default.createElement(react_native_1.Text, { style: styles.topHudTitle }, isVerified ? 'BIOMETRIC MATCH CONFIRMED' : isAnalyzing ? 'LIVE INFERENCE ENGINE' : 'READY TO SCAN')))),
         react_1.default.createElement(react_native_1.View, { style: styles.centerContainer, pointerEvents: "none" },
             react_1.default.createElement(react_native_1.View, { style: [styles.faceOval, { borderColor: reticleColor }] },
                 isAnalyzing && !isVerified && (react_1.default.createElement(react_native_1.Animated.View, { style: [

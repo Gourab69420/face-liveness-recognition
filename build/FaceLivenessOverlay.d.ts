@@ -9,6 +9,7 @@ export interface FaceLivenessOverlayProps {
     isVerified?: boolean;
     showHologram?: boolean;
     hologramOpacity?: number;
+    showTopStatus?: boolean;
 }
 export declare const FaceLivenessOverlay: React.FC<FaceLivenessOverlayProps>;
 //# sourceMappingURL=FaceLivenessOverlay.d.ts.map

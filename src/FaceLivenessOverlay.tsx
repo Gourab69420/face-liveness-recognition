@@ -19,6 +19,7 @@ export interface FaceLivenessOverlayProps {
   isVerified?: boolean;
   showHologram?: boolean;
   hologramOpacity?: number;
+  showTopStatus?: boolean;
 }
 
 /**
@@ -328,6 +329,7 @@ export const FaceLivenessOverlay: React.FC<FaceLivenessOverlayProps> = ({
   isVerified = false,
   showHologram = true,
   hologramOpacity = 0.38,
+  showTopStatus = false,
 }) => {
   const scanLineAnim = useRef(new Animated.Value(0)).current;
 
@@ -401,14 +403,16 @@ export const FaceLivenessOverlay: React.FC<FaceLivenessOverlayProps> = ({
   return (
     <View style={styles.container} pointerEvents="box-none">
       {/* Top Floating Status Capsule */}
-      <View style={styles.topContainer} pointerEvents="none">
-        <View style={styles.topHudBadge}>
-          <View style={[styles.statusDot, { backgroundColor: isVerified ? '#10B981' : isAnalyzing ? '#3B82F6' : '#94A3B8' }]} />
-          <Text style={styles.topHudTitle}>
-            {isVerified ? 'BIOMETRIC MATCH CONFIRMED' : isAnalyzing ? 'LIVE INFERENCE ENGINE' : 'READY TO SCAN'}
-          </Text>
+      {showTopStatus && (
+        <View style={styles.topContainer} pointerEvents="none">
+          <View style={styles.topHudBadge}>
+            <View style={[styles.statusDot, { backgroundColor: isVerified ? '#10B981' : isAnalyzing ? '#3B82F6' : '#94A3B8' }]} />
+            <Text style={styles.topHudTitle}>
+              {isVerified ? 'BIOMETRIC MATCH CONFIRMED' : isAnalyzing ? 'LIVE INFERENCE ENGINE' : 'READY TO SCAN'}
+            </Text>
+          </View>
         </View>
-      </View>
+      )}
 
       {/* Center Biometric Reticle: Oval Aperture + Translucent Animated Hologram Overlay */}
       <View style={styles.centerContainer} pointerEvents="none">
