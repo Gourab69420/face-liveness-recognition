@@ -24,8 +24,16 @@
     "mobilefacenet",
     "minifasnet"
   ],
-  "author": "",
+  "author": "Gourab",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Gourab69420/face-liveness-recognition.git"
+  },
+  "homepage": "https://github.com/Gourab69420/face-liveness-recognition#readme",
+  "bugs": {
+    "url": "https://github.com/Gourab69420/face-liveness-recognition/issues"
+  },
   "peerDependencies": {
     "expo": ">=51.0.0",
     "expo-modules-core": ">=1.12.0",
