@@ -198,10 +198,10 @@ class FaceLivenessAnalyzer(
             val frameBitmap = imageProxy.toBitmap()
             val rotatedBitmap = BitmapUtils.rotateBitmap(frameBitmap, rotationDegrees, mirror = false)
 
-            // Face Quality Assessment (FQA)
+            // Face Quality Assessment (FQA) - Permissive thresholds suitable for diverse mobile lighting
             val sharpness = OpenCVUtils.calculateSharpness(rotatedBitmap)
-            if (sharpness < 40.0) {
-                // Reject blurry frames caused by fast hand movement
+            if (sharpness < 18.0) {
+                // Reject only severely blurry frames
                 listener.onFaceStatus(FaceStatus.FACE_BLURRY, bounds, yaw, pitch)
                 if (rotatedBitmap != frameBitmap) rotatedBitmap.recycle()
                 frameBitmap.recycle()
@@ -209,7 +209,7 @@ class FaceLivenessAnalyzer(
             }
 
             val luminance = OpenCVUtils.calculateLuminance(rotatedBitmap)
-            if (luminance < 30.0 || luminance > 235.0) {
+            if (luminance < 18.0 || luminance > 248.0) {
                 listener.onFaceStatus(FaceStatus.FACE_POOR_LIGHTING, bounds, yaw, pitch)
                 if (rotatedBitmap != frameBitmap) rotatedBitmap.recycle()
                 frameBitmap.recycle()
@@ -260,20 +260,24 @@ class FaceLivenessAnalyzer(
             }
             frameBitmap.recycle()
 
-            if (output != null) {
-                Log.d(TAG, "Sample ${samples.size + 1}/$requiredSamples: liveScore=${output.liveScore}, isArgmaxLive=${output.isArgmaxLive}")
-                samples.add(output.liveScore)
+            val isRecogOnly = mode == "recognition_only"
+            val targetSamples = if (isRecogOnly) 2 else requiredSamples
+
+            if (output != null || isRecogOnly) {
+                val score = output?.liveScore ?: 1.0f
+                samples.add(score)
+                Log.d(TAG, "Sample ${samples.size}/$targetSamples (mode=$mode): score=$score, embeddings=${collectedEmbeddings.size}")
                 listener.onProgress(
                     LivenessProgressData(
                         currentSample = samples.size,
-                        totalSamples = requiredSamples,
+                        totalSamples = targetSamples,
                         activeChallenge = ChallengeType.NONE,
                         challengeProgress = 1.0f,
                         faceStatus = status
                     )
                 )
 
-                if (samples.size >= requiredSamples) {
+                if (samples.size >= targetSamples) {
                     evaluateFinalResult()
                 }
             }

@@ -27,8 +27,8 @@ class FaceLivenessCameraView(context: Context, appContext: AppContext) : ExpoVie
     private val previewView: PreviewView = PreviewView(context).apply {
         layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT)
         scaleType = PreviewView.ScaleType.FILL_CENTER
-        // PERFORMANCE mode uses hardware SurfaceView for instant 60 FPS camera initialization
-        implementationMode = PreviewView.ImplementationMode.PERFORMANCE
+        // COMPATIBLE (TextureView) provides stable rendering across React Native dynamic tabs and navigation
+        implementationMode = PreviewView.ImplementationMode.COMPATIBLE
     }
 
     private var cameraExecutor: ExecutorService = Executors.newSingleThreadExecutor()
@@ -354,8 +354,7 @@ class FaceLivenessCameraView(context: Context, appContext: AppContext) : ExpoVie
             analyzer?.stopCheck()
             cameraProvider?.unbindAll()
             isCameraBound = false
-            recognizer?.close()
-            recognizer = null
+            // Keep warm cached models in memory so subsequent camera sessions start instantly
         } catch (e: Exception) {
             Log.e(TAG, "Error unbinding camera use cases on detach", e)
         }

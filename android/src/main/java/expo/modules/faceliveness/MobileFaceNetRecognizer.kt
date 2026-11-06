@@ -33,17 +33,25 @@ class MobileFaceNetRecognizer(private val context: Context) : AutoCloseable {
     private val inputSize = 112
 
     init {
-        try {
-            val modelBuffer = loadModelFile()
-            val options = Interpreter.Options().apply {
-                setNumThreads(4)
-                setUseXNNPACK(true)
+        getOrInitInterpreter()
+    }
+
+    @Synchronized
+    private fun getOrInitInterpreter(): Interpreter? {
+        if (interpreter == null) {
+            try {
+                val modelBuffer = loadModelFile()
+                val options = Interpreter.Options().apply {
+                    setNumThreads(4)
+                    setUseXNNPACK(true)
+                }
+                interpreter = Interpreter(modelBuffer, options)
+                Log.i(TAG, "MobileFaceNet 192-D face recognition interpreter initialized")
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to initialize MobileFaceNet interpreter: ${e.message}", e)
             }
-            interpreter = Interpreter(modelBuffer, options)
-            Log.i(TAG, "MobileFaceNet 192-D face recognition interpreter initialized")
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to initialize MobileFaceNet interpreter: ${e.message}", e)
         }
+        return interpreter
     }
 
     private fun loadModelFile(): ByteBuffer {
@@ -59,7 +67,7 @@ class MobileFaceNetRecognizer(private val context: Context) : AutoCloseable {
      * Extracts a 192-dimensional L2-normalized face embedding from a 112x112 aligned face bitmap.
      */
     fun extractEmbedding(alignedFace: Bitmap): FloatArray? {
-        val currentInterpreter = interpreter ?: return null
+        val currentInterpreter = getOrInitInterpreter() ?: return null
 
         val scaled = if (alignedFace.width != inputSize || alignedFace.height != inputSize) {
             Bitmap.createScaledBitmap(alignedFace, inputSize, inputSize, true)

@@ -25,21 +25,25 @@ class MiniFASNetClassifier(
     private var interpreter: Interpreter? = null
 
     init {
-        initInterpreter()
+        getOrInitInterpreter()
     }
 
-    private fun initInterpreter() {
-        try {
-            val modelBuffer = loadModelFile()
-            val options = Interpreter.Options().apply {
-                setNumThreads(4)
-                useNNAPI = false
+    @Synchronized
+    private fun getOrInitInterpreter(): Interpreter? {
+        if (interpreter == null) {
+            try {
+                val modelBuffer = loadModelFile()
+                val options = Interpreter.Options().apply {
+                    setNumThreads(4)
+                    useNNAPI = false
+                }
+                interpreter = Interpreter(modelBuffer, options)
+                Log.d(TAG, "TFLite MiniFASNet interpreter initialized successfully")
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to initialize TFLite interpreter: ${e.message}", e)
             }
-            interpreter = Interpreter(modelBuffer, options)
-            Log.d(TAG, "TFLite MiniFASNet interpreter initialized successfully")
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to initialize TFLite interpreter: ${e.message}", e)
         }
+        return interpreter
     }
 
     private fun loadModelFile(): MappedByteBuffer {
@@ -68,7 +72,7 @@ class MiniFASNetClassifier(
      * Face crop is expanded by [scaleFactor] (2.7x) and resized to 80x80.
      */
     fun classify(bitmap: Bitmap, faceRect: Rect, scaleFactor: Float = 2.7f): ClassifierOutput? {
-        val currentInterpreter = interpreter ?: return null
+        val currentInterpreter = getOrInitInterpreter() ?: return null
 
         val croppedFace = BitmapUtils.cropAndScaleFace(
             bitmap = bitmap,
