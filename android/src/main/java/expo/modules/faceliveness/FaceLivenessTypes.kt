@@ -10,6 +10,7 @@ enum class FaceStatus(val value: String) {
     FACE_OUT_OF_BOUNDS("face_out_of_bounds"),
     FACE_BLURRY("face_blurry"),
     FACE_POOR_LIGHTING("face_poor_lighting"),
+    FACE_OCCLUDED("face_occluded"),
     FACE_DETECTED("face_detected")
 }
 

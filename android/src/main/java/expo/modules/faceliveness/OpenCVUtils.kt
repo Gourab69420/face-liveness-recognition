@@ -93,16 +93,63 @@ object OpenCVUtils {
         targetWidth: Int = 112,
         targetHeight: Int = 112
     ): Bitmap {
-        if (faceRect != null && faceRect.width() > 0 && faceRect.height() > 0) {
-            return BitmapUtils.cropAndScaleFace(
-                bitmap = srcBitmap,
-                faceRect = faceRect,
-                scaleFactor = 1.25f,
-                targetWidth = targetWidth,
-                targetHeight = targetHeight
-            )
+        if (!init() || leftEye == null || rightEye == null || faceRect == null) {
+            if (faceRect != null && faceRect.width() > 0 && faceRect.height() > 0) {
+                return BitmapUtils.cropAndScaleFace(
+                    bitmap = srcBitmap,
+                    faceRect = faceRect,
+                    scaleFactor = 1.25f,
+                    targetWidth = targetWidth,
+                    targetHeight = targetHeight
+                )
+            }
+            return Bitmap.createScaledBitmap(srcBitmap, targetWidth, targetHeight, true)
         }
-        return Bitmap.createScaledBitmap(srcBitmap, targetWidth, targetHeight, true)
+
+        return try {
+            val dX = (rightEye.x - leftEye.x).toDouble()
+            val dY = (rightEye.y - leftEye.y).toDouble()
+            val angle = Math.toDegrees(Math.atan2(dY, dX))
+
+            // Only rotate if eye tilt is moderate (-45 to +45 deg)
+            if (kotlin.math.abs(angle) < 45.0 && kotlin.math.abs(angle) > 1.5) {
+                val eyeCenter = org.opencv.core.Point(
+                    ((leftEye.x + rightEye.x) / 2.0),
+                    ((leftEye.y + rightEye.y) / 2.0)
+                )
+
+                val srcMat = Mat()
+                Utils.bitmapToMat(srcBitmap, srcMat)
+
+                val rotMat = Imgproc.getRotationMatrix2D(eyeCenter, angle, 1.0)
+                val rotatedMat = Mat()
+                Imgproc.warpAffine(srcMat, rotatedMat, rotMat, srcMat.size())
+
+                val rotatedBitmap = Bitmap.createBitmap(srcBitmap.width, srcBitmap.height, Bitmap.Config.ARGB_8888)
+                Utils.matToBitmap(rotatedMat, rotatedBitmap)
+
+                srcMat.release()
+                rotMat.release()
+                rotatedMat.release()
+
+                val cropped = BitmapUtils.cropAndScaleFace(
+                    bitmap = rotatedBitmap,
+                    faceRect = faceRect,
+                    scaleFactor = 1.25f,
+                    targetWidth = targetWidth,
+                    targetHeight = targetHeight
+                )
+                if (rotatedBitmap != srcBitmap) {
+                    rotatedBitmap.recycle()
+                }
+                cropped
+            } else {
+                BitmapUtils.cropAndScaleFace(srcBitmap, faceRect, 1.25f, targetWidth, targetHeight)
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Eye alignment failed, falling back to standard crop: ${e.message}")
+            BitmapUtils.cropAndScaleFace(srcBitmap, faceRect, 1.25f, targetWidth, targetHeight)
+        }
     }
 
     /**

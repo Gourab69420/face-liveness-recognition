@@ -140,7 +140,7 @@ const FaceLivenessCamera = ({ active = true, config = {}, challenges: directChal
     const securityLevel = directSecLevel ?? cfg.securityLevel ?? 'balanced';
     const recognitionThreshold = directRecThreshold ??
         cfg.recognitionThreshold ??
-        (securityLevel === 'strict' ? 0.68 : securityLevel === 'relaxed' ? 0.50 : 0.58);
+        (securityLevel === 'strict' ? 0.80 : securityLevel === 'relaxed' ? 0.68 : 0.74);
     const liveThreshold = cfg.liveThreshold ?? (securityLevel === 'relaxed' ? 0.35 : 0.40);
     const spoofThreshold = cfg.spoofThreshold ?? (securityLevel === 'relaxed' ? 0.25 : 0.30);
     const customModelPath = cfg.customModelPath;

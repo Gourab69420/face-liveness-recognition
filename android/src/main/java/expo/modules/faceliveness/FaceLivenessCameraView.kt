@@ -47,7 +47,7 @@ class FaceLivenessCameraView(context: Context, appContext: AppContext) : ExpoVie
     private var active: Boolean = false
     private var liveThreshold: Float = 0.50f
     private var spoofThreshold: Float = 0.35f
-    private var recognitionThreshold: Float = 0.72f
+    private var recognitionThreshold: Float = 0.74f
     private var mode: String = "liveness_and_recognition"
     private var customModelPath: String? = null
     private var challenges: List<ChallengeType> = emptyList()
@@ -147,15 +147,15 @@ class FaceLivenessCameraView(context: Context, appContext: AppContext) : ExpoVie
         when (level.lowercase()) {
             "relaxed" -> {
                 this.liveThreshold = 0.35f
-                this.recognitionThreshold = 0.50f
+                this.recognitionThreshold = 0.68f
             }
             "strict" -> {
                 this.liveThreshold = 0.55f
-                this.recognitionThreshold = 0.68f
+                this.recognitionThreshold = 0.80f
             }
             else -> {
                 this.liveThreshold = 0.40f
-                this.recognitionThreshold = 0.58f
+                this.recognitionThreshold = 0.74f
             }
         }
         analyzer?.matchThreshold = this.recognitionThreshold

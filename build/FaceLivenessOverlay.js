@@ -315,7 +315,9 @@ const FaceLivenessOverlay = ({ faceStatus = 'no_face', progress, activeChallenge
             return '#10B981';
         if (faceStatus === 'face_detected')
             return '#FFFFFF';
-        if (faceStatus === 'multiple_faces' || faceStatus === 'face_out_of_bounds')
+        if (faceStatus === 'multiple_faces' ||
+            faceStatus === 'face_out_of_bounds' ||
+            faceStatus === 'face_occluded')
             return '#EF4444';
         if (faceStatus === 'face_too_far' || faceStatus === 'face_too_close')
             return '#F59E0B';

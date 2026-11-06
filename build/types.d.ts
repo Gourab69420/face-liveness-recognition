@@ -2,7 +2,7 @@ import type { ViewStyle, StyleProp } from 'react-native';
 /**
  * Status of the face detected by the camera.
  */
-export type FaceStatus = 'no_face' | 'multiple_faces' | 'face_too_far' | 'face_too_close' | 'face_out_of_bounds' | 'face_blurry' | 'face_poor_lighting' | 'face_detected';
+export type FaceStatus = 'no_face' | 'multiple_faces' | 'face_too_far' | 'face_too_close' | 'face_out_of_bounds' | 'face_blurry' | 'face_poor_lighting' | 'face_occluded' | 'face_detected';
 /**
  * Classification outcome of the liveness check.
  * - 'live': Genuine real person (confidence/score above threshold and challenges passed).

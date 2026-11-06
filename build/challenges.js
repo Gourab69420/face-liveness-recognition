@@ -81,6 +81,8 @@ function getFaceStatusInstruction(status) {
             return 'Hold still, face is blurry';
         case 'face_poor_lighting':
             return 'Adjust your position for better lighting';
+        case 'face_occluded':
+            return 'Face is covered. Remove hand or mask';
         case 'face_detected':
             return 'Face detected. Ready to begin';
         default:

@@ -47,7 +47,7 @@ class FaceLivenessAnalyzer(
 
     // Face Recognition state
     var enrolledProfiles: List<EnrolledProfile> = emptyList()
-    var matchThreshold: Float = 0.72f
+    var matchThreshold: Float = 0.74f
     var mode: String = "liveness_and_recognition" // "liveness_and_recognition", "recognition_only", "liveness_only"
     private var latestEmbedding: FloatArray? = null
 
@@ -58,7 +58,7 @@ class FaceLivenessAnalyzer(
         val options = FaceDetectorOptions.Builder()
             .setPerformanceMode(FaceDetectorOptions.PERFORMANCE_MODE_FAST)
             .setClassificationMode(FaceDetectorOptions.CLASSIFICATION_MODE_ALL)
-            .setLandmarkMode(FaceDetectorOptions.LANDMARK_MODE_NONE)
+            .setLandmarkMode(FaceDetectorOptions.LANDMARK_MODE_ALL)
             .setContourMode(FaceDetectorOptions.CONTOUR_MODE_NONE)
             .enableTracking()
             .build()
@@ -138,11 +138,13 @@ class FaceLivenessAnalyzer(
 
         // Validate face positioning in frame
         val faceWidthRatio = bounds.width().toFloat() / frameWidth.toFloat()
+        val isOccluded = isFaceOccluded(face, yaw)
 
         val status = when {
             faceWidthRatio < 0.14f -> FaceStatus.FACE_TOO_FAR
             faceWidthRatio > 0.88f -> FaceStatus.FACE_TOO_CLOSE
             bounds.centerX() < (frameWidth * 0.10f) || bounds.centerX() > (frameWidth * 0.90f) -> FaceStatus.FACE_OUT_OF_BOUNDS
+            isOccluded -> FaceStatus.FACE_OCCLUDED
             else -> FaceStatus.FACE_DETECTED
         }
 
@@ -427,6 +429,76 @@ class FaceLivenessAnalyzer(
             similarity = recognition?.similarity ?: 0f
         )
         listener.onResult(result)
+    }
+
+    /**
+     * Biometric Occlusion & Feature Completeness Verification.
+     * Ensures eyes, nose, mouth, and cheeks are completely unobstructed.
+     * If hand, mask, or object covers any part of the face, returns true (occluded).
+     */
+    private fun isFaceOccluded(face: Face, yaw: Float): Boolean {
+        val leftEye = face.getLandmark(FaceLandmark.LEFT_EYE)
+        val rightEye = face.getLandmark(FaceLandmark.RIGHT_EYE)
+        val nose = face.getLandmark(FaceLandmark.NOSE_BASE)
+        val mouthBottom = face.getLandmark(FaceLandmark.MOUTH_BOTTOM)
+        val mouthLeft = face.getLandmark(FaceLandmark.MOUTH_LEFT)
+        val mouthRight = face.getLandmark(FaceLandmark.MOUTH_RIGHT)
+        val leftCheek = face.getLandmark(FaceLandmark.LEFT_CHEEK)
+        val rightCheek = face.getLandmark(FaceLandmark.RIGHT_CHEEK)
+
+        // 1. Eyes visibility check
+        if (abs(yaw) < 20f) {
+            // When facing forward, BOTH eyes must be visible
+            if (leftEye == null || rightEye == null) {
+                Log.d(TAG, "Face occluded: missing eyes (left=${leftEye != null}, right=${rightEye != null})")
+                return true
+            }
+        } else {
+            // When turning, at least one eye must be clearly detected
+            if (leftEye == null && rightEye == null) {
+                return true
+            }
+        }
+
+        // 2. Nose visibility check: nose base must always be present
+        if (nose == null) {
+            Log.d(TAG, "Face occluded: missing nose")
+            return true
+        }
+
+        // 3. Mouth visibility check: mouth bottom must be present AND at least one corner
+        if (mouthBottom == null || (mouthLeft == null && mouthRight == null)) {
+            Log.d(TAG, "Face occluded: missing mouth landmarks (bottom=${mouthBottom != null}, left=${mouthLeft != null}, right=${mouthRight != null})")
+            return true
+        }
+
+        // 4. Cheeks check: when facing forward, cheeks must not be obstructed
+        if (abs(yaw) < 18f) {
+            if (leftCheek == null || rightCheek == null) {
+                Log.d(TAG, "Face occluded: missing cheeks (left=${leftCheek != null}, right=${rightCheek != null})")
+                return true
+            }
+        }
+
+        // 5. Geometric validation: mouth MUST be below nose, and nose MUST be below eyes
+        val eyeY = when {
+            leftEye != null && rightEye != null -> (leftEye.position.y + rightEye.position.y) / 2f
+            leftEye != null -> leftEye.position.y
+            rightEye != null -> rightEye.position.y
+            else -> 0f
+        }
+        if (eyeY > 0f) {
+            if (nose.position.y <= eyeY) {
+                Log.d(TAG, "Face occluded: geometric anomaly - nose above eyes")
+                return true
+            }
+            if (mouthBottom.position.y <= nose.position.y) {
+                Log.d(TAG, "Face occluded: geometric anomaly - mouth above nose")
+                return true
+            }
+        }
+
+        return false
     }
 
     fun close() {

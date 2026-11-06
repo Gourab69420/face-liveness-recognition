@@ -11,6 +11,7 @@ export type FaceStatus =
   | 'face_out_of_bounds'
   | 'face_blurry'
   | 'face_poor_lighting'
+  | 'face_occluded'
   | 'face_detected';
 
 /**
