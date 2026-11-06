@@ -45,6 +45,7 @@ export const FaceLivenessCamera: React.FC<FaceLivenessCameraProps> = ({
     pitch: 0,
   });
   const [currentProgress, setCurrentProgress] = useState<LivenessProgress | null>(null);
+  const randomChallengeRef = useRef<ChallengeType>(getRandomChallenge());
 
   const requestPermission = useCallback(async () => {
     try {
@@ -160,7 +161,6 @@ export const FaceLivenessCamera: React.FC<FaceLivenessCameraProps> = ({
 
   const cfg = (config || {}) as any;
   const mode = directMode ?? cfg.mode ?? 'liveness_and_recognition';
-  const randomChallengeRef = useRef<ChallengeType>(getRandomChallenge());
   const challenges =
     directChallenges ??
     cfg.challenges ??

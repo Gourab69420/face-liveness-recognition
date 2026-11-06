@@ -47,6 +47,7 @@ const FaceLivenessCamera = ({ active = true, config = {}, challenges: directChal
         pitch: 0,
     });
     const [currentProgress, setCurrentProgress] = (0, react_1.useState)(null);
+    const randomChallengeRef = (0, react_1.useRef)((0, challenges_1.getRandomChallenge)());
     const requestPermission = (0, react_1.useCallback)(async () => {
         try {
             const res = await NativeExpoFaceLiveness_1.NativeFaceLivenessModule.requestCameraPermissionsAsync();
@@ -119,7 +120,6 @@ const FaceLivenessCamera = ({ active = true, config = {}, challenges: directChal
     }
     const cfg = (config || {});
     const mode = directMode ?? cfg.mode ?? 'liveness_and_recognition';
-    const randomChallengeRef = (0, react_1.useRef)((0, challenges_1.getRandomChallenge)());
     const challenges = directChallenges ??
         cfg.challenges ??
         (randomizeChallenges
