@@ -207,8 +207,8 @@ Controls the minimum cosine similarity ($0.0$ to $1.0$) required to declare a bi
 />
 ```
 
-* `0.65`: Forgiving. Ideal for outdoor conditions, varying lighting, or users wearing hats/glasses.
-* `0.72`: Balanced. Standard corporate attendance and workplace check-in recommendation.
+* `0.68`: Forgiving. Suitable for outdoor conditions, varying lighting, or users wearing hats/glasses.
+* `0.74`: Balanced. Recommended standard corporate attendance and workplace check-in default.
 * `0.80+`: High security. Recommended for financial transactions or privileged access control.
 
 ### 2. Preset Security Levels (`securityLevel`)
@@ -219,9 +219,25 @@ Select preset combinations for convenience:
 <FaceLivenessCamera securityLevel="balanced" />
 ```
 
-* `relaxed`: Recognition threshold 0.50, anti-spoof threshold 0.35. Fast capture.
-* `balanced`: Recognition threshold 0.58, anti-spoof threshold 0.40. Standard production default.
-* `strict`: Recognition threshold 0.68, anti-spoof threshold 0.50. Enhanced anti-spoof scrutiny.
+* `relaxed`: Recognition threshold 0.68, anti-spoof threshold 0.35. Forgiving match.
+* `balanced`: Recognition threshold 0.74, anti-spoof threshold 0.40. Standard production default.
+* `strict`: Recognition threshold 0.80, anti-spoof threshold 0.55. Enhanced biometric security.
+
+---
+
+## Biometric Occlusion & Facial Feature Protection
+
+To prevent spoofing or corrupted registrations, the on-device engine continuously validates full facial landmark completeness across every frame:
+* **Mouth & Lips:** `MOUTH_BOTTOM`, `MOUTH_LEFT`, and `MOUTH_RIGHT` must be clearly visible and uncovered.
+* **Cheeks:** `LEFT_CHEEK` and `RIGHT_CHEEK` must be visible when facing forward.
+* **Eyes & Nose:** `LEFT_EYE`, `RIGHT_EYE`, and `NOSE_BASE` must be unobscured.
+* **Geometric Validation:** Enforces natural anatomical proportions ($y_{\text{mouth}} > y_{\text{nose}} > y_{\text{eyes}}$).
+
+If a user covers their mouth, chin, cheeks, or eyes with a hand, phone, or mask:
+1. The engine triggers status `'face_occluded'`.
+2. The reticle turns warning red (`#EF4444`).
+3. The prompt displays: `"Face is covered. Remove hand or mask"`.
+4. The system blocks both registration and verification until the obstruction is removed.
 
 ### 3. Fine-Grained Pipeline Options (`config`)
 

@@ -6,11 +6,14 @@ jest.config.js
 # Exclude source maps from published package to keep it lightweight
 build/**/*.map
 
-# Local Android build artifacts
+# Local Android build artifacts and caches
+android/build/**
 android/build/
+android/.gradle/**
 android/.gradle/
-android/.idea/
+android/.idea/**
 android/*.iml
+android/local.properties
 
 # System and logs
 *.log
