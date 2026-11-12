@@ -56,9 +56,6 @@
     "app.plugin.js",
     "expo-module.config.json",
     "README.md",
-    "CHANGELOG.md",
-    "SECURITY.md",
-    "SECURITY_AUDIT.md",
     "LICENSE",
     "MODEL_INFO.md",
     "MODEL_LICENSE.md"
