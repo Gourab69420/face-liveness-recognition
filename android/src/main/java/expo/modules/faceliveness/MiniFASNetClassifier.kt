@@ -7,6 +7,8 @@ import android.util.Log
 import org.tensorflow.lite.Interpreter
 import java.io.File
 import java.io.FileInputStream
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
 import java.nio.MappedByteBuffer
 import java.nio.channels.FileChannel
 import kotlin.math.exp
@@ -23,6 +25,15 @@ class MiniFASNetClassifier(
     private val customModelPath: String? = null
 ) {
     private var interpreter: Interpreter? = null
+    private val inputWidth = 80
+    private val inputHeight = 80
+
+    // Pre-allocated reusable buffers for zero GC churn during inference
+    private val reusableBuffer: ByteBuffer = ByteBuffer.allocateDirect(1 * 3 * inputWidth * inputHeight * 4).apply {
+        order(ByteOrder.nativeOrder())
+    }
+    private val reusablePixels = IntArray(inputWidth * inputHeight)
+    private val reusableOutput = Array(1) { FloatArray(3) }
 
     init {
         getOrInitInterpreter()
@@ -33,12 +44,14 @@ class MiniFASNetClassifier(
         if (interpreter == null) {
             try {
                 val modelBuffer = loadModelFile()
+                val cores = Runtime.getRuntime().availableProcessors()
+                val optimalThreads = if (cores <= 4) 2 else 4
                 val options = Interpreter.Options().apply {
-                    setNumThreads(4)
-                    useNNAPI = false
+                    setNumThreads(optimalThreads)
+                    setUseXNNPACK(true)
                 }
                 interpreter = Interpreter(modelBuffer, options)
-                Log.d(TAG, "TFLite MiniFASNet interpreter initialized successfully")
+                Log.d(TAG, "TFLite MiniFASNet interpreter initialized with XNNPACK on $optimalThreads threads")
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to initialize TFLite interpreter: ${e.message}", e)
             }
@@ -70,6 +83,7 @@ class MiniFASNetClassifier(
     /**
      * Executes inference on the detected face patch.
      * Face crop is expanded by [scaleFactor] (2.7x) and resized to 80x80.
+     * CLAHE illumination enhancement is applied directly to the 80x80 crop (sub-millisecond).
      */
     fun classify(bitmap: Bitmap, faceRect: Rect, scaleFactor: Float = 2.7f): ClassifierOutput? {
         val currentInterpreter = getOrInitInterpreter() ?: return null
@@ -78,20 +92,29 @@ class MiniFASNetClassifier(
             bitmap = bitmap,
             faceRect = faceRect,
             scaleFactor = scaleFactor,
-            targetWidth = 80,
-            targetHeight = 80
+            targetWidth = inputWidth,
+            targetHeight = inputHeight
         )
 
-        val inputBuffer = BitmapUtils.bitmapToBgrNchwBuffer(croppedFace)
+        // Apply illumination enhancement on the 80x80 face patch (instant, avoids full frame)
+        val enhancedFace = OpenCVUtils.enhanceIllumination(croppedFace)
+
+        val inputBuffer = BitmapUtils.bitmapToBgrNchwBuffer(
+            bitmap = enhancedFace,
+            targetBuffer = reusableBuffer,
+            reusablePixels = reusablePixels
+        )
+
+        if (enhancedFace != croppedFace && enhancedFace != bitmap) {
+            enhancedFace.recycle()
+        }
         if (croppedFace != bitmap) {
             croppedFace.recycle()
         }
 
-        // Output tensor shape: [1, 3]
-        val outputArray = Array(1) { FloatArray(3) }
-        currentInterpreter.run(inputBuffer, outputArray)
+        currentInterpreter.run(inputBuffer, reusableOutput)
 
-        val raw = outputArray[0]
+        val raw = reusableOutput[0]
         // Determine whether model output is already softmax probabilities or raw logits
         val isAlreadySoftmax = (raw.all { it >= 0f } && kotlin.math.abs(raw.sum() - 1.0f) < 0.05f)
         val probs = if (isAlreadySoftmax) raw else softmax(raw)
@@ -110,7 +133,7 @@ class MiniFASNetClassifier(
         return ClassifierOutput(
             liveScore = liveScore,
             isArgmaxLive = isLive,
-            probabilities = probs
+            probabilities = probs.clone()
         )
     }
 

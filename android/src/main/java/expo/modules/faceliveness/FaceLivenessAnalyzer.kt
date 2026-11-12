@@ -200,8 +200,8 @@ class FaceLivenessAnalyzer(
             val frameBitmap = imageProxy.toBitmap()
             val rotatedBitmap = BitmapUtils.rotateBitmap(frameBitmap, rotationDegrees, mirror = false)
 
-            // Face Quality Assessment (FQA) - Permissive thresholds suitable for diverse mobile lighting
-            val sharpness = OpenCVUtils.calculateSharpness(rotatedBitmap)
+            // Face Quality Assessment (FQA) on Face ROI - Permissive thresholds suitable for diverse mobile lighting
+            val sharpness = OpenCVUtils.calculateSharpness(rotatedBitmap, bounds)
             if (sharpness < 18.0) {
                 // Reject only severely blurry frames
                 listener.onFaceStatus(FaceStatus.FACE_BLURRY, bounds, yaw, pitch)
@@ -210,7 +210,7 @@ class FaceLivenessAnalyzer(
                 return
             }
 
-            val luminance = OpenCVUtils.calculateLuminance(rotatedBitmap)
+            val luminance = OpenCVUtils.calculateLuminance(rotatedBitmap, bounds)
             if (luminance < 18.0 || luminance > 248.0) {
                 listener.onFaceStatus(FaceStatus.FACE_POOR_LIGHTING, bounds, yaw, pitch)
                 if (rotatedBitmap != frameBitmap) rotatedBitmap.recycle()
@@ -218,25 +218,23 @@ class FaceLivenessAnalyzer(
                 return
             }
 
-            // 1. OpenCV Illumination Enhancement (CLAHE)
-            val enhancedBitmap = OpenCVUtils.enhanceIllumination(rotatedBitmap)
+            // 1. Passive anti-spoofing inference (MiniFASNet internally enhances illumination on the 80x80 crop directly)
+            val output = classifier.classify(rotatedBitmap, bounds, scaleFactor = 2.7f)
 
-            // 2. Passive anti-spoofing inference
-            val output = classifier.classify(enhancedBitmap, bounds, scaleFactor = 2.7f)
-
-            // 3. Face Recognition: Align and extract MobileFaceNet 192-D embedding
+            // 2. Face Recognition: Align, crop to 112x112, enhance crop illumination, and extract MobileFaceNet 192-D embedding
             if (recognizer != null) {
                 try {
                     val leftEye = face.getLandmark(FaceLandmark.LEFT_EYE)?.position
                     val rightEye = face.getLandmark(FaceLandmark.RIGHT_EYE)?.position
 
                     val alignedFace = OpenCVUtils.alignAndCropFace(
-                        srcBitmap = enhancedBitmap,
+                        srcBitmap = rotatedBitmap,
                         faceRect = bounds,
                         leftEye = leftEye,
                         rightEye = rightEye,
                         targetWidth = 112,
-                        targetHeight = 112
+                        targetHeight = 112,
+                        enhanceCropIllumination = true
                     )
 
                     val emb = recognizer.extractEmbedding(alignedFace)
@@ -245,7 +243,7 @@ class FaceLivenessAnalyzer(
                         collectedEmbeddings.add(emb)
                         Log.d(TAG, "Extracted 192-D face embedding successfully (total=${collectedEmbeddings.size})")
                     }
-                    if (alignedFace != enhancedBitmap) {
+                    if (alignedFace != rotatedBitmap) {
                         alignedFace.recycle()
                     }
                 } catch (e: Exception) {
@@ -254,9 +252,6 @@ class FaceLivenessAnalyzer(
             }
 
             // Recycle temporary bitmaps
-            if (enhancedBitmap != rotatedBitmap) {
-                enhancedBitmap.recycle()
-            }
             if (rotatedBitmap != frameBitmap) {
                 rotatedBitmap.recycle()
             }

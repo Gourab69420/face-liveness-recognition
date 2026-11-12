@@ -70,51 +70,43 @@ object BitmapUtils {
     /**
      * Converts an 80x80 bitmap into an NCHW [1, 3, 80, 80] Float32 ByteBuffer
      * with BGR color order and pixel / 255.0 normalization as required by MiniFASNet.
+     * Supports passing reusable buffer and pixel array to achieve zero GC heap allocation.
      */
-    fun bitmapToBgrNchwBuffer(bitmap: Bitmap): ByteBuffer {
+    fun bitmapToBgrNchwBuffer(
+        bitmap: Bitmap,
+        targetBuffer: ByteBuffer? = null,
+        reusablePixels: IntArray? = null
+    ): ByteBuffer {
         val width = bitmap.width
         val height = bitmap.height
+        val numPixels = width * height
 
-        // 1 * 3 * width * height * 4 bytes per float
-        val byteBuffer = ByteBuffer.allocateDirect(1 * 3 * width * height * 4).apply {
-            order(ByteOrder.nativeOrder())
-            rewind()
+        val byteBuffer = targetBuffer?.apply { rewind() }
+            ?: ByteBuffer.allocateDirect(1 * 3 * numPixels * 4).apply {
+                order(ByteOrder.nativeOrder())
+                rewind()
+            }
+
+        val pixels = if (reusablePixels != null && reusablePixels.size >= numPixels) {
+            reusablePixels
+        } else {
+            IntArray(numPixels)
         }
-
-        val pixels = IntArray(width * height)
         bitmap.getPixels(pixels, 0, width, 0, 0, width, height)
 
         // MiniFASNet NCHW layout:
         // Channel 0: Blue
         // Channel 1: Green
         // Channel 2: Red
-        val numPixels = width * height
-        val blueChannel = FloatArray(numPixels)
-        val greenChannel = FloatArray(numPixels)
-        val redChannel = FloatArray(numPixels)
-
+        // Loop directly without allocating intermediate float arrays
         for (i in 0 until numPixels) {
-            val pixel = pixels[i]
-            val r = ((pixel shr 16) and 0xFF) / 255.0f
-            val g = ((pixel shr 8) and 0xFF) / 255.0f
-            val b = (pixel and 0xFF) / 255.0f
-
-            blueChannel[i] = b
-            greenChannel[i] = g
-            redChannel[i] = r
+            byteBuffer.putFloat((pixels[i] and 0xFF) / 255.0f)
         }
-
-        // Write Channel 0 (Blue)
         for (i in 0 until numPixels) {
-            byteBuffer.putFloat(blueChannel[i])
+            byteBuffer.putFloat(((pixels[i] shr 8) and 0xFF) / 255.0f)
         }
-        // Write Channel 1 (Green)
         for (i in 0 until numPixels) {
-            byteBuffer.putFloat(greenChannel[i])
-        }
-        // Write Channel 2 (Red)
-        for (i in 0 until numPixels) {
-            byteBuffer.putFloat(redChannel[i])
+            byteBuffer.putFloat(((pixels[i] shr 16) and 0xFF) / 255.0f)
         }
 
         byteBuffer.rewind()

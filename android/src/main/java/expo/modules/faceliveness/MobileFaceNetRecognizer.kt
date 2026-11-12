@@ -32,6 +32,13 @@ class MobileFaceNetRecognizer(private val context: Context) : AutoCloseable {
     private val embeddingSize = 192
     private val inputSize = 112
 
+    // Pre-allocated reusable buffers for zero GC churn during inference
+    private val reusableBuffer: ByteBuffer = ByteBuffer.allocateDirect(1 * inputSize * inputSize * 3 * 4).apply {
+        order(ByteOrder.nativeOrder())
+    }
+    private val reusablePixels = IntArray(inputSize * inputSize)
+    private val reusableOutput = Array(1) { FloatArray(embeddingSize) }
+
     init {
         getOrInitInterpreter()
     }
@@ -41,12 +48,14 @@ class MobileFaceNetRecognizer(private val context: Context) : AutoCloseable {
         if (interpreter == null) {
             try {
                 val modelBuffer = loadModelFile()
+                val cores = Runtime.getRuntime().availableProcessors()
+                val optimalThreads = if (cores <= 4) 2 else 4
                 val options = Interpreter.Options().apply {
-                    setNumThreads(4)
+                    setNumThreads(optimalThreads)
                     setUseXNNPACK(true)
                 }
                 interpreter = Interpreter(modelBuffer, options)
-                Log.i(TAG, "MobileFaceNet 192-D face recognition interpreter initialized")
+                Log.i(TAG, "MobileFaceNet 192-D face recognition interpreter initialized with XNNPACK on $optimalThreads threads")
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to initialize MobileFaceNet interpreter: ${e.message}", e)
             }
@@ -65,6 +74,7 @@ class MobileFaceNetRecognizer(private val context: Context) : AutoCloseable {
 
     /**
      * Extracts a 192-dimensional L2-normalized face embedding from a 112x112 aligned face bitmap.
+     * Uses pre-allocated direct buffers for zero memory churn.
      */
     fun extractEmbedding(alignedFace: Bitmap): FloatArray? {
         val currentInterpreter = getOrInitInterpreter() ?: return null
@@ -75,34 +85,28 @@ class MobileFaceNetRecognizer(private val context: Context) : AutoCloseable {
             alignedFace
         }
 
-        // Convert 112x112 Bitmap to NHWC Float32 buffer: (pixel - 127.5f) / 128.0f
-        val inputBuffer = ByteBuffer.allocateDirect(1 * inputSize * inputSize * 3 * 4).apply {
-            order(ByteOrder.nativeOrder())
-            rewind()
-        }
+        reusableBuffer.rewind()
+        scaled.getPixels(reusablePixels, 0, inputSize, 0, 0, inputSize, inputSize)
 
-        val pixels = IntArray(inputSize * inputSize)
-        scaled.getPixels(pixels, 0, inputSize, 0, 0, inputSize, inputSize)
-
-        for (pixel in pixels) {
+        for (i in 0 until (inputSize * inputSize)) {
+            val pixel = reusablePixels[i]
             val r = (((pixel shr 16) and 0xFF) - 127.5f) / 128.0f
             val g = (((pixel shr 8) and 0xFF) - 127.5f) / 128.0f
             val b = ((pixel and 0xFF) - 127.5f) / 128.0f
 
-            inputBuffer.putFloat(r)
-            inputBuffer.putFloat(g)
-            inputBuffer.putFloat(b)
+            reusableBuffer.putFloat(r)
+            reusableBuffer.putFloat(g)
+            reusableBuffer.putFloat(b)
         }
 
         if (scaled != alignedFace) {
             scaled.recycle()
         }
 
-        val outputArray = Array(1) { FloatArray(embeddingSize) }
-        currentInterpreter.run(inputBuffer, outputArray)
+        currentInterpreter.run(reusableBuffer, reusableOutput)
 
         // Perform L2 Normalization so dot product == cosine similarity
-        val rawEmbedding = outputArray[0]
+        val rawEmbedding = reusableOutput[0]
         var normSum = 0f
         for (v in rawEmbedding) {
             normSum += v * v
