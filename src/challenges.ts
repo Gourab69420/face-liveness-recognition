@@ -1,4 +1,5 @@
 import { ChallengeType, FaceStatus, LivenessResult } from './types';
+import { secureShuffle } from './crypto/random';
 
 /**
  * User-friendly prompts and instructions for active challenges.
@@ -50,7 +51,7 @@ export function getRandomChallenges(
   count: number = 1,
   pool: ChallengeType[] = DEFAULT_CHALLENGE_POOL
 ): ChallengeType[] {
-  const shuffled = [...pool].sort(() => 0.5 - Math.random());
+  const shuffled = secureShuffle(pool);
   return shuffled.slice(0, Math.min(count, pool.length));
 }
 

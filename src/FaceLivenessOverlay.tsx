@@ -512,7 +512,7 @@ const ovalHeight = ovalWidth * 1.34;
 
 const styles = StyleSheet.create({
   container: {
-    ...StyleSheet.absoluteFill,
+    ...StyleSheet.absoluteFillObject,
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingVertical: 24,
@@ -562,7 +562,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   avatarHologramContainer: {
-    ...StyleSheet.absoluteFill,
+    ...StyleSheet.absoluteFillObject,
     alignItems: 'center',
     justifyContent: 'center',
   },

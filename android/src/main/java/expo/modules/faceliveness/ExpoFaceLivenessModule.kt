@@ -8,6 +8,8 @@ import expo.modules.kotlin.modules.ModuleDefinition
 
 class ExpoFaceLivenessModule : Module() {
 
+    private val keyStore by lazy { FaceLivenessKeyStore() }
+
     override fun definition() = ModuleDefinition {
         Name("ExpoFaceLiveness")
 
@@ -30,6 +32,60 @@ class ExpoFaceLivenessModule : Module() {
                 Manifest.permission.CAMERA
             )
         }
+
+        // ====================================================================
+        // Android Keystore Key Management
+        // ====================================================================
+
+        Function("generateSigningKey") { alias: String ->
+            val metadata = keyStore.generateSigningKey(alias)
+            mapOf(
+                "alias" to metadata.alias,
+                "publicKey" to metadata.publicKey,
+                "algorithm" to metadata.algorithm,
+                "isHardwareBacked" to metadata.isHardwareBacked,
+                "isStrongBoxBacked" to metadata.isStrongBoxBacked
+            )
+        }
+
+        Function("getSigningPublicKey") { alias: String ->
+            val metadata = keyStore.getKeyMetadata(alias) ?: return@Function null
+            mapOf(
+                "alias" to metadata.alias,
+                "publicKey" to metadata.publicKey,
+                "algorithm" to metadata.algorithm,
+                "isHardwareBacked" to metadata.isHardwareBacked,
+                "isStrongBoxBacked" to metadata.isStrongBoxBacked
+            )
+        }
+
+        Function("signPayload") { alias: String, payload: String ->
+            keyStore.signPayload(alias, payload)
+        }
+
+        Function("hasSigningKey") { alias: String ->
+            keyStore.hasKey(alias)
+        }
+
+        Function("deleteSigningKey") { alias: String ->
+            keyStore.deleteKey(alias)
+        }
+
+        Function("getRandomBytes") { byteLength: Int ->
+            val bytes = ByteArray(byteLength)
+            java.security.SecureRandom().nextBytes(bytes)
+            android.util.Base64.encodeToString(bytes, android.util.Base64.NO_WRAP)
+        }
+
+        Function("getRandomBytesHex") { byteLength: Int ->
+            val bytes = ByteArray(byteLength)
+            java.security.SecureRandom().nextBytes(bytes)
+            bytes.joinToString("") { "%02x".format(it) }
+        }
+
+        // ====================================================================
+        // Camera View Component
+        // ====================================================================
 
         View(FaceLivenessCameraView::class) {
             Events(

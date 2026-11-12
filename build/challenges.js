@@ -7,6 +7,7 @@ exports.getRandomChallenges = getRandomChallenges;
 exports.getChallengeInstruction = getChallengeInstruction;
 exports.getFaceStatusInstruction = getFaceStatusInstruction;
 exports.getLivenessResultSummary = getLivenessResultSummary;
+const random_1 = require("./crypto/random");
 /**
  * User-friendly prompts and instructions for active challenges.
  */
@@ -50,7 +51,7 @@ function resetChallengeRotation() {
  * Returns an array of N unique randomized challenges.
  */
 function getRandomChallenges(count = 1, pool = exports.DEFAULT_CHALLENGE_POOL) {
-    const shuffled = [...pool].sort(() => 0.5 - Math.random());
+    const shuffled = (0, random_1.secureShuffle)(pool);
     return shuffled.slice(0, Math.min(count, pool.length));
 }
 /**

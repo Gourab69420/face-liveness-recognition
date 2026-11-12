@@ -15,11 +15,7 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "moduleResolution": "node",
-    "ignoreDeprecations": "6.0",
-    "baseUrl": ".",
-    "paths": {
-      "*": ["../testing-app/node_modules/*"]
-    }
+    "ignoreDeprecations": "5.0"
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "build", "src/**/__tests__/*"]

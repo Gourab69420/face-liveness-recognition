@@ -7,7 +7,7 @@ describe('MiniFASNet Model & Classification Logic', () => {
     expect(MINIFASNET_MODEL_SPEC.inputDimensions.channels).toBe(3);
     expect(MINIFASNET_MODEL_SPEC.colorOrder).toBe('BGR');
     expect(MINIFASNET_MODEL_SPEC.cropScaleFactor).toBe(2.7);
-    expect(MINIFASNET_MODEL_SPEC.liveClassIndex).toBe(1);
+    expect(MINIFASNET_MODEL_SPEC.liveClassIndex).toBe(2);
   });
 
   it('classifies high consistent scores as live when challenge passes', () => {

@@ -22,8 +22,8 @@ export interface EnrollmentSubmissionPayload {
     signature: string;
 }
 /**
- * Cryptographic biometric authentication / punch-in attestation proof.
- * Validated by your backend to guarantee the user actually passed a live camera scan.
+ * Legacy cryptographic biometric authentication proof (Protocol v1).
+ * @deprecated Use SecureBiometricProof (Protocol v2) with asymmetric Android Keystore ECDSA signatures.
  */
 export interface BiometricAuthProof {
     userId: string;
@@ -45,6 +45,7 @@ export type PunchInProof = BiometricAuthProof;
 export declare function packEmbedding(embedding: number[]): string;
 /**
  * Unpacks a Base64 binary string back into a 192-dimensional Float array.
+ * Strictly validates that decoded length is exactly 768 bytes (192 floats).
  */
 export declare function unpackEmbedding(base64: string): number[];
 /**
@@ -53,11 +54,20 @@ export declare function unpackEmbedding(base64: string): number[];
  */
 export declare function computeCosineSimilarity(vecA: number[], vecB: number[]): number;
 /**
- * Symmetric stream cipher encryption for protecting face tokens with an enterprise secret key.
+ * Legacy hash function signature wrapper.
+ * Replaced with genuine HMAC-SHA256.
+ *
+ * @deprecated Use computeHmacSha256 or asymmetric ECDSA signatures.
+ */
+export declare function hashSignature(input: string, key: string): string;
+/**
+ * Authenticated AES-256-GCM encryption for biometric face tokens.
+ * Replaces previous unauthenticated hand-rolled RC4 cipher.
  */
 export declare function encryptToken(token: string, secretKey: string): string;
 /**
- * Decrypts an encrypted face token back into the Base64 binary representation.
+ * Authenticated AES-256-GCM decryption for biometric face tokens.
+ * Verifies the 128-bit authentication tag before releasing data.
  */
 export declare function decryptToken(cipherBase64: string, secretKey: string): string;
 /**
@@ -68,23 +78,30 @@ export declare function decryptToken(cipherBase64: string, secretKey: string): s
 export declare class BiometricEnrollmentGuard {
     /**
      * Verifies whether a user is permitted to enroll their face.
+     *
+     * @param profile - Current user profile
+     * @param adminPermissionToken - Signed admin authorization token or authorization grant
+     * @param verifyAdminToken - Optional custom verification predicate (e.g. JWT verification)
      */
-    static canEnroll(profile: UserBiometricProfile, adminPermissionToken?: string): {
+    static canEnroll(profile: UserBiometricProfile, adminPermissionToken?: string, verifyAdminToken?: (token: string) => boolean): {
         allowed: boolean;
         reason?: string;
     };
     /**
-     * Prepares the encrypted submission payload to save in your database.
+     * Prepares the encrypted submission payload using AES-256-GCM and HMAC-SHA256 signature.
      */
     static createEnrollmentPayload(userId: string, userName: string, embedding: number[], encryptionKey: string): EnrollmentSubmissionPayload;
 }
 /**
- * Biometric Authentication & Punch-In Attestation:
- * Generates and validates cryptographic proofs to prevent API replay attacks.
+ * Biometric Authentication & Punch-In Attestation (Protocol v1).
+ *
+ * @deprecated For mobile clients, use SecureBiometricProof and Android Keystore ECDSA P-256 keys.
+ * Client-side HMAC with shared secrets should NOT be embedded in mobile applications.
  */
 export declare class BiometricProofGenerator {
     /**
      * Creates an anti-replay proof when a live face match completes.
+     * Uses cryptographically secure random nonce and genuine HMAC-SHA256 covering ALL fields.
      */
     static generateProof(userId: string, result: LivenessResult, sharedSecret: string, challengeType?: string): BiometricAuthProof;
     /**

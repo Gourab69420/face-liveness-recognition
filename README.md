@@ -17,7 +17,8 @@ Zero cloud dependencies. Zero recurring API fees. Raw biometric data never leave
 * **OpenCV 4.9.0 Image Processing:** Automated CLAHE illumination normalization, landmark-guided affine face alignment, and Laplacian blur detection.
 * **Active Kinetic Challenges:** Dynamic prompts (smile, blink, head turn left, head turn right) confirming real-time 3D presence.
 * **Production UI Overlay:** Centered translucent biometric silhouette hologram over the face preview with dynamic color transitions and zero cartoonish emojis.
-* **Tamper-Proof Biometric Proofs:** Cryptographically signed attestation tokens (HMAC-SHA256) with anti-replay timestamps.
+* **Hardware-Backed Cryptographic Proofs:** Asymmetric ECDSA P-256 signatures backed by Android Keystore (TEE/StrongBox) with server-managed atomic replay protection.
+* **Authenticated Biometric Encryption:** AES-256-GCM authenticated encryption for facial embeddings with unique 96-bit nonces and identity-bound Authenticated Additional Data (AAD).
 
 ---
 
@@ -304,11 +305,11 @@ Available challenge types:
 
 ---
 
-## Complete Production Workflows
+## Complete Production Workflows (Protocol v2)
 
 ### 1. One-Time Face Enrollment Flow
 
-Capture a user's face, extract the 192-dimensional vector, pack it into an encrypted token, and store it in your database:
+Capture a user's face, extract the 192-dimensional vector, pack it into an authenticated AES-256-GCM encrypted token, register the device's hardware-backed public key, and store the profile on your server:
 
 ```tsx
 import React, { useState } from 'react';
@@ -317,6 +318,7 @@ import {
   FaceLivenessCamera,
   LivenessResult,
   BiometricEnrollmentGuard,
+  getOrCreateSigningKey,
 } from 'face-liveness-recognition';
 
 export default function EnrollmentScreen({ user, adminUnlockToken }) {
@@ -333,22 +335,31 @@ export default function EnrollmentScreen({ user, adminUnlockToken }) {
     if (result.embedding && result.embedding.length === 192) {
       setIsDone(true);
 
-      // Pack and encrypt the 192-float array into a compact Base64 token
+      // 1. Ensure a hardware-backed signing key exists in Android Keystore
+      const keyMeta = getOrCreateSigningKey('biometric_auth_key');
+
+      // 2. Encrypt the 192-float array into an authenticated AES-256-GCM token
+      // Note: Encryption key is provided by the server session or server-side KMS
       const payload = BiometricEnrollmentGuard.createEnrollmentPayload(
         user.id,
         user.name,
         result.embedding,
-        'YOUR_APP_SECRET_KEY'
+        user.sessionEncryptionKey
       );
 
-      // Send to your backend API to store in SQL or MongoDB
+      // 3. Register device public key and biometric profile with your backend
       await fetch('https://api.yourapp.com/biometrics/enroll', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          ...payload,
+          devicePublicKey: keyMeta.publicKey,
+          deviceId: keyMeta.alias,
+          isHardwareBacked: keyMeta.isHardwareBacked,
+        }),
       });
 
-      Alert.alert('Success', 'Biometric profile registered.');
+      Alert.alert('Success', 'Biometric profile registered with hardware key.');
     }
   };
 
@@ -371,7 +382,7 @@ const styles = StyleSheet.create({
 
 ### 2. Daily Verification / Attendance Punch-In Flow
 
-Match the live camera feed against the enrolled user token stored in your backend:
+Match the live camera feed against the enrolled user token stored in your backend, obtaining an anti-replay challenge from the server and signing the proof with Android Keystore:
 
 ```tsx
 import React, { useState } from 'react';
@@ -380,7 +391,8 @@ import {
   FaceLivenessCamera,
   LivenessResult,
   prepareProfileForDevice,
-  BiometricProofGenerator,
+  generateSecureProof,
+  createKeystoreProofSigner,
 } from 'face-liveness-recognition';
 
 export default function CheckInScreen({ currentUser, userAuthToken }) {
@@ -392,7 +404,7 @@ export default function CheckInScreen({ currentUser, userAuthToken }) {
       currentUser.id,
       currentUser.name,
       currentUser.faceTokenFromDB,
-      'YOUR_APP_SECRET_KEY'
+      currentUser.sessionDecryptionKey
     ),
   ];
 
@@ -400,15 +412,32 @@ export default function CheckInScreen({ currentUser, userAuthToken }) {
     if (result.isMatch && result.status === 'live' && result.challengePassed) {
       setVerified(true);
 
-      // Generate signed tamper-proof cryptographic payload
-      const proof = BiometricProofGenerator.generateProof(
-        currentUser.id,
-        result,
-        'YOUR_APP_SECRET_KEY',
-        'smile'
-      );
+      // 1. Request an unpredictable challenge nonce from your backend
+      const challengeRes = await fetch('https://api.yourapp.com/auth/challenge', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${userAuthToken}`,
+        },
+        body: JSON.stringify({
+          userId: currentUser.id,
+          deviceId: 'biometric_auth_key',
+        }),
+      });
+      const challenge = await challengeRes.json();
 
-      // Post check-in to your backend
+      // 2. Generate Protocol v2.0 proof signed by Android Keystore (private key never leaves device)
+      const proof = await generateSecureProof({
+        userId: currentUser.id,
+        sessionId: challenge.sessionId,
+        deviceId: 'biometric_auth_key',
+        nonce: challenge.nonce,
+        result,
+        challengeType: 'smile',
+        signer: createKeystoreProofSigner('biometric_auth_key'),
+      });
+
+      // 3. Post proof to your backend for atomic verification
       const res = await fetch('https://api.yourapp.com/attendance/check-in', {
         method: 'POST',
         headers: {
@@ -418,8 +447,11 @@ export default function CheckInScreen({ currentUser, userAuthToken }) {
         body: JSON.stringify(proof),
       });
 
-      if (res.ok) {
+      const data = await res.json();
+      if (res.ok && data.success) {
         Alert.alert('Verified', `Welcome, ${result.matchedUserName || currentUser.name}!`);
+      } else {
+        Alert.alert('Verification Rejected', data.error || 'Verification failed.');
       }
     } else {
       Alert.alert('Verification Failed', 'Identity mismatch or spoof detected.');
@@ -448,40 +480,101 @@ const styles = StyleSheet.create({
 
 ---
 
-## Backend Verification Endpoint
+## Server-Side Verification (Node.js Reference)
 
-On your server (Node.js, Express, Next.js), verify incoming biometric check-in proofs:
+On your server, manage challenge nonces atomically and verify incoming cryptographic proofs using the reference `ServerVerificationService`:
 
 ```ts
 import express from 'express';
-import { BiometricProofGenerator } from 'face-liveness-recognition';
+import {
+  ServerVerificationService,
+  AtomicNonceStore,
+  DeviceKeyRegistry,
+} from 'face-liveness-recognition';
 
 const app = express();
 app.use(express.json());
 
-const SECRET = process.env.BIOMETRIC_SECRET || 'YOUR_APP_SECRET_KEY';
+const nonceStore = new AtomicNonceStore();
+const keyRegistry = new DeviceKeyRegistry();
+const verifier = new ServerVerificationService(nonceStore, keyRegistry);
 
+// 1. Key registration during enrollment
+app.post('/api/devices/register', (req, res) => {
+  const { deviceId, userId, publicKey, isHardwareBacked } = req.body;
+  const key = keyRegistry.registerKey({
+    deviceId,
+    userId,
+    publicKey,
+    isHardwareBacked,
+  });
+  res.json({ success: true, key });
+});
+
+// 2. Issue authentication challenge
+app.post('/auth/challenge', (req, res) => {
+  const { userId, deviceId } = req.body;
+  const sessionId = `sess_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+
+  const challenge = verifier.issueChallenge({
+    sessionId,
+    userId,
+    deviceId,
+    ttlMs: 60000, // 60s TTL
+  });
+
+  res.json({
+    sessionId: challenge.sessionId,
+    nonce: challenge.nonce,
+    expiresAt: challenge.expiresAt,
+  });
+});
+
+// 3. Verify check-in proof
 app.post('/attendance/check-in', async (req, res) => {
   const proof = req.body;
 
-  // Validate cryptographic signature, timestamp age (max 60 seconds), and replay nonce
-  const verification = BiometricProofGenerator.verifyProof(proof, SECRET, 60000);
+  // Atomically consumes nonce, verifies ECDSA signature, and enforces liveness score policy
+  const result = await verifier.verifyProof(proof);
 
-  if (!verification.valid) {
-    return res.status(403).json({ error: verification.reason });
+  if (!result.success) {
+    return res.status(403).json({
+      error: result.reason,
+      code: result.code,
+    });
   }
 
-  // Record attendance in your database
+  // Record verified attendance
   await db.attendance.create({
     userId: proof.userId,
-    similarity: proof.similarity,
+    similarity: proof.recognitionScore,
     challenge: proof.challengeType,
-    timestamp: new Date(proof.timestamp),
+    verifiedAt: result.verifiedAt,
   });
 
   return res.json({ success: true, message: 'Check-in confirmed.' });
 });
 ```
+
+---
+
+## Migration Guide (Protocol v1.0 to v2.0)
+
+If you are upgrading from `face-liveness-recognition` v1.0.x:
+
+1. **Client-Side Secrets:** Remove any hardcoded `sharedSecret` or enterprise symmetric keys from your mobile application.
+2. **Android Keystore Keys:** Replace `BiometricProofGenerator.generateProof()` with `generateSecureProof()` and `createKeystoreProofSigner()`.
+3. **Token Encryption:** Tokens are now authenticated using AES-256-GCM. Legacy RC4 encryption is deprecated. Existing tokens can be re-encrypted upon user re-authentication.
+4. **Backend Nonce Management:** Proof verification now enforces atomic single-use nonces via `AtomicNonceStore`. Replaying intercepted proofs is blocked at the server level.
+5. **Score Coverage:** All fields (including `livenessScore`, `challengeType`, and `durationMs`) are now deterministically covered by the cryptographic signature.
+
+---
+
+## Security Boundaries & Limitations
+
+- **Rooted / Compromised Devices:** On rooted devices with kernel-level instrumentation (Frida, Xposed), attackers can intercept camera feeds or manipulate runtime memory. Hardware-backed Keystore prevents private key theft, but cannot ensure client integrity on a hostile operating system.
+- **Biometric Assurance:** A valid cryptographic signature guarantees that the registered device signed the payload. Server applications must independently verify the `livenessScore` and challenge results rather than trusting a signature alone.
+- **Expo Compatibility:** Hardware-backed Android Keystore and native neural inference require an Expo Development Build (`npx expo run:android`) or bare React Native. They do not run in Expo Go.
 
 ---
 

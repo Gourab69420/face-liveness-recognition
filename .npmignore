@@ -17,5 +17,6 @@ android/local.properties
 
 # System and logs
 *.log
+*.tgz
 .DS_Store
 Thumbs.db

@@ -390,7 +390,7 @@ const ovalWidth = Math.min(width * 0.74, 290);
 const ovalHeight = ovalWidth * 1.34;
 const styles = react_native_1.StyleSheet.create({
     container: {
-        ...react_native_1.StyleSheet.absoluteFill,
+        ...react_native_1.StyleSheet.absoluteFillObject,
         justifyContent: 'space-between',
         alignItems: 'center',
         paddingVertical: 24,
@@ -439,7 +439,7 @@ const styles = react_native_1.StyleSheet.create({
         overflow: 'hidden',
     },
     avatarHologramContainer: {
-        ...react_native_1.StyleSheet.absoluteFill,
+        ...react_native_1.StyleSheet.absoluteFillObject,
         alignItems: 'center',
         justifyContent: 'center',
     },

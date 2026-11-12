@@ -4,158 +4,104 @@ exports.BiometricPunchInProofGenerator = exports.BiometricProofGenerator = expor
 exports.packEmbedding = packEmbedding;
 exports.unpackEmbedding = unpackEmbedding;
 exports.computeCosineSimilarity = computeCosineSimilarity;
+exports.hashSignature = hashSignature;
 exports.encryptToken = encryptToken;
 exports.decryptToken = decryptToken;
 exports.prepareProfileForDevice = prepareProfileForDevice;
+const crypto_1 = require("./crypto");
+const random_1 = require("./crypto/random");
+const EMBEDDING_DIMENSIONS = 192;
+const EXPECTED_EMBEDDING_BYTE_LENGTH = EMBEDDING_DIMENSIONS * 4; // 768 bytes
 /**
  * Packs a 192-dimensional Float array into a compact Base64 binary string.
  * Standard JSON: ~3,500 bytes.
  * Binary packed Base64: exactly 1,024 characters (768 bytes).
  */
 function packEmbedding(embedding) {
+    if (!Array.isArray(embedding)) {
+        throw new Error('[face-liveness-recognition] Embedding must be an array of numbers.');
+    }
+    if (embedding.length !== EMBEDDING_DIMENSIONS) {
+        throw new Error(`[face-liveness-recognition] Invalid embedding dimension: expected ${EMBEDDING_DIMENSIONS}, received ${embedding.length}.`);
+    }
+    for (let i = 0; i < embedding.length; i++) {
+        if (!Number.isFinite(embedding[i])) {
+            throw new Error(`[face-liveness-recognition] Embedding contains non-finite value at index ${i}: ${embedding[i]}`);
+        }
+    }
     const float32Array = new Float32Array(embedding);
     const uint8Array = new Uint8Array(float32Array.buffer);
-    let binary = '';
-    const len = uint8Array.byteLength;
-    for (let i = 0; i < len; i++) {
-        binary += String.fromCharCode(uint8Array[i]);
-    }
-    if (typeof btoa === 'function') {
-        return btoa(binary);
-    }
-    else if (typeof Buffer !== 'undefined') {
-        return Buffer.from(uint8Array).toString('base64');
-    }
-    throw new Error('[face-liveness-recognition] No Base64 encoder available');
+    return (0, random_1.bytesToBase64)(uint8Array);
 }
 /**
  * Unpacks a Base64 binary string back into a 192-dimensional Float array.
+ * Strictly validates that decoded length is exactly 768 bytes (192 floats).
  */
 function unpackEmbedding(base64) {
-    let binaryString;
-    if (typeof atob === 'function') {
-        binaryString = atob(base64);
+    if (typeof base64 !== 'string' || base64.trim().length === 0) {
+        throw new Error('[face-liveness-recognition] Invalid Base64 input: string cannot be empty.');
     }
-    else if (typeof Buffer !== 'undefined') {
-        binaryString = Buffer.from(base64, 'base64').toString('binary');
+    const uint8Array = (0, random_1.decodeBase64ToBytes)(base64);
+    if (uint8Array.length !== EXPECTED_EMBEDDING_BYTE_LENGTH) {
+        throw new Error(`[face-liveness-recognition] Invalid embedding binary size: expected ${EXPECTED_EMBEDDING_BYTE_LENGTH} bytes, received ${uint8Array.length} bytes.`);
     }
-    else {
-        throw new Error('[face-liveness-recognition] No Base64 decoder available');
+    const float32Array = new Float32Array(uint8Array.buffer, uint8Array.byteOffset, uint8Array.byteLength / 4);
+    const result = Array.from(float32Array);
+    for (let i = 0; i < result.length; i++) {
+        if (!Number.isFinite(result[i])) {
+            throw new Error(`[face-liveness-recognition] Unpacked embedding contains non-finite float at index ${i}`);
+        }
     }
-    const len = binaryString.length;
-    const uint8Array = new Uint8Array(len);
-    for (let i = 0; i < len; i++) {
-        uint8Array[i] = binaryString.charCodeAt(i);
-    }
-    const float32Array = new Float32Array(uint8Array.buffer);
-    return Array.from(float32Array);
+    return result;
 }
 /**
  * Computes the cosine similarity between two 192-D face vectors.
  * Returns a value between 0.0 and 1.0 (for L2-normalized vectors).
  */
 function computeCosineSimilarity(vecA, vecB) {
-    if (vecA.length !== vecB.length)
+    if (!vecA || !vecB || vecA.length !== vecB.length || vecA.length === 0)
         return 0;
     let dotProduct = 0;
     let normA = 0;
     let normB = 0;
     for (let i = 0; i < vecA.length; i++) {
-        dotProduct += vecA[i] * vecB[i];
-        normA += vecA[i] * vecA[i];
-        normB += vecB[i] * vecB[i];
+        const a = vecA[i];
+        const b = vecB[i];
+        if (!Number.isFinite(a) || !Number.isFinite(b))
+            return 0;
+        dotProduct += a * b;
+        normA += a * a;
+        normB += b * b;
     }
     if (normA === 0 || normB === 0)
         return 0;
     const similarity = dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
+    if (!Number.isFinite(similarity))
+        return 0;
     return Math.max(0, Math.min(1, similarity));
 }
 /**
- * Fast, lightweight cryptographic hashing (HMAC-FNV) for signing payloads.
+ * Legacy hash function signature wrapper.
+ * Replaced with genuine HMAC-SHA256.
+ *
+ * @deprecated Use computeHmacSha256 or asymmetric ECDSA signatures.
  */
 function hashSignature(input, key) {
-    let h1 = 0xdeadbeef ^ key.length;
-    let h2 = 0x41c6ce57 ^ key.length;
-    for (let i = 0; i < input.length; i++) {
-        const ch = input.charCodeAt(i);
-        h1 = Math.imul(h1 ^ ch, 2654435761);
-        h2 = Math.imul(h2 ^ ch, 1597334677);
-    }
-    h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
-    h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
-    return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(16);
+    return (0, crypto_1.computeHmacSha256)(input, key, 'hex');
 }
 /**
- * Symmetric stream cipher encryption for protecting face tokens with an enterprise secret key.
+ * Authenticated AES-256-GCM encryption for biometric face tokens.
+ * Replaces previous unauthenticated hand-rolled RC4 cipher.
  */
 function encryptToken(token, secretKey) {
-    const s = new Array(256);
-    for (let i = 0; i < 256; i++)
-        s[i] = i;
-    let j = 0;
-    for (let i = 0; i < 256; i++) {
-        j = (j + s[i] + secretKey.charCodeAt(i % secretKey.length)) % 256;
-        const temp = s[i];
-        s[i] = s[j];
-        s[j] = temp;
-    }
-    let i = 0;
-    j = 0;
-    let result = '';
-    for (let k = 0; k < token.length; k++) {
-        i = (i + 1) % 256;
-        j = (j + s[i]) % 256;
-        const temp = s[i];
-        s[i] = s[j];
-        s[j] = temp;
-        const charCode = token.charCodeAt(k) ^ s[(s[i] + s[j]) % 256];
-        result += String.fromCharCode(charCode);
-    }
-    if (typeof btoa === 'function') {
-        return btoa(result);
-    }
-    else if (typeof Buffer !== 'undefined') {
-        return Buffer.from(result, 'binary').toString('base64');
-    }
-    return result;
+    return (0, crypto_1.encryptAesGcm)(token, secretKey);
 }
 /**
- * Decrypts an encrypted face token back into the Base64 binary representation.
+ * Authenticated AES-256-GCM decryption for biometric face tokens.
+ * Verifies the 128-bit authentication tag before releasing data.
  */
 function decryptToken(cipherBase64, secretKey) {
-    let cipherText;
-    if (typeof atob === 'function') {
-        cipherText = atob(cipherBase64);
-    }
-    else if (typeof Buffer !== 'undefined') {
-        cipherText = Buffer.from(cipherBase64, 'base64').toString('binary');
-    }
-    else {
-        cipherText = cipherBase64;
-    }
-    const s = new Array(256);
-    for (let i = 0; i < 256; i++)
-        s[i] = i;
-    let j = 0;
-    for (let i = 0; i < 256; i++) {
-        j = (j + s[i] + secretKey.charCodeAt(i % secretKey.length)) % 256;
-        const temp = s[i];
-        s[i] = s[j];
-        s[j] = temp;
-    }
-    let i = 0;
-    j = 0;
-    let result = '';
-    for (let k = 0; k < cipherText.length; k++) {
-        i = (i + 1) % 256;
-        j = (j + s[i]) % 256;
-        const temp = s[i];
-        s[i] = s[j];
-        s[j] = temp;
-        const charCode = cipherText.charCodeAt(k) ^ s[(s[i] + s[j]) % 256];
-        result += String.fromCharCode(charCode);
-    }
-    return result;
+    return (0, crypto_1.decryptAesGcm)(cipherBase64, secretKey);
 }
 /**
  * Biometric Enrollment Guard:
@@ -165,13 +111,29 @@ function decryptToken(cipherBase64, secretKey) {
 class BiometricEnrollmentGuard {
     /**
      * Verifies whether a user is permitted to enroll their face.
+     *
+     * @param profile - Current user profile
+     * @param adminPermissionToken - Signed admin authorization token or authorization grant
+     * @param verifyAdminToken - Optional custom verification predicate (e.g. JWT verification)
      */
-    static canEnroll(profile, adminPermissionToken) {
+    static canEnroll(profile, adminPermissionToken, verifyAdminToken) {
         if (!profile.isLocked) {
             return { allowed: true };
         }
-        if (adminPermissionToken && adminPermissionToken.trim().length >= 8) {
-            return { allowed: true };
+        if (adminPermissionToken && adminPermissionToken.trim().length > 0) {
+            if (verifyAdminToken) {
+                if (verifyAdminToken(adminPermissionToken)) {
+                    return { allowed: true };
+                }
+                return {
+                    allowed: false,
+                    reason: 'Admin authorization token verification failed. Re-enrollment rejected.',
+                };
+            }
+            // If no custom verifier provided, require non-trivial token
+            if (adminPermissionToken.trim().length >= 16) {
+                return { allowed: true };
+            }
         }
         return {
             allowed: false,
@@ -179,13 +141,16 @@ class BiometricEnrollmentGuard {
         };
     }
     /**
-     * Prepares the encrypted submission payload to save in your database.
+     * Prepares the encrypted submission payload using AES-256-GCM and HMAC-SHA256 signature.
      */
     static createEnrollmentPayload(userId, userName, embedding, encryptionKey) {
         const rawToken = packEmbedding(embedding);
-        const encryptedToken = encryptToken(rawToken, encryptionKey);
+        // Encrypt token with AES-256-GCM binding userId as Authenticated Additional Data (AAD)
+        const encryptedToken = (0, crypto_1.encryptAesGcm)(rawToken, encryptionKey, { associatedData: userId });
         const enrolledAt = new Date().toISOString();
-        const signature = hashSignature(`${userId}:${enrolledAt}:${encryptedToken.slice(0, 32)}`, encryptionKey);
+        // Authenticate entire token by hashing the complete ciphertext
+        const tokenHash = (0, crypto_1.computeSha256Hex)(encryptedToken);
+        const signature = (0, crypto_1.computeHmacSha256)(`${userId}:${userName}:${enrolledAt}:${tokenHash}`, encryptionKey, 'hex');
         return {
             userId,
             userName,
@@ -197,18 +162,22 @@ class BiometricEnrollmentGuard {
 }
 exports.BiometricEnrollmentGuard = BiometricEnrollmentGuard;
 /**
- * Biometric Authentication & Punch-In Attestation:
- * Generates and validates cryptographic proofs to prevent API replay attacks.
+ * Biometric Authentication & Punch-In Attestation (Protocol v1).
+ *
+ * @deprecated For mobile clients, use SecureBiometricProof and Android Keystore ECDSA P-256 keys.
+ * Client-side HMAC with shared secrets should NOT be embedded in mobile applications.
  */
 class BiometricProofGenerator {
     /**
      * Creates an anti-replay proof when a live face match completes.
+     * Uses cryptographically secure random nonce and genuine HMAC-SHA256 covering ALL fields.
      */
     static generateProof(userId, result, sharedSecret, challengeType = 'smile') {
         const timestamp = new Date().toISOString();
-        const nonce = Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
-        const rawData = `${userId}|${timestamp}|${nonce}|${result.similarity ?? 0}|${result.challengePassed}`;
-        const signature = hashSignature(rawData, sharedSecret);
+        const nonce = (0, random_1.generateSecureNonce)(16);
+        // Sign all security-relevant fields: userId, timestamp, nonce, similarity, score, challengeType, challengePassed, durationMs
+        const rawData = `${userId}|${timestamp}|${nonce}|${result.similarity ?? 0}|${result.score}|${challengeType}|${result.challengePassed}|${result.durationMs}`;
+        const signature = (0, crypto_1.computeHmacSha256)(rawData, sharedSecret, 'hex');
         return {
             userId,
             timestamp,
@@ -234,9 +203,9 @@ class BiometricProofGenerator {
         if (!proof.challengePassed) {
             return { valid: false, reason: 'Liveness kinetic challenge was not passed' };
         }
-        const rawData = `${proof.userId}|${proof.timestamp}|${proof.nonce}|${proof.similarity}|${proof.challengePassed}`;
-        const expectedSignature = hashSignature(rawData, sharedSecret);
-        if (proof.signature !== expectedSignature) {
+        const rawData = `${proof.userId}|${proof.timestamp}|${proof.nonce}|${proof.similarity}|${proof.livenessScore}|${proof.challengeType}|${proof.challengePassed}|${proof.durationMs}`;
+        const isValid = (0, crypto_1.verifyHmacSha256)(rawData, proof.signature, sharedSecret, 'hex');
+        if (!isValid) {
             return { valid: false, reason: 'Signature mismatch: tampering detected' };
         }
         return { valid: true };
@@ -249,7 +218,14 @@ exports.BiometricPunchInProofGenerator = BiometricProofGenerator;
  * Prepares a profile fetched from the database for on-device 1-to-1 matching.
  */
 function prepareProfileForDevice(userId, userName, encryptedTokenFromDB, decryptionKey) {
-    const rawBase64 = decryptToken(encryptedTokenFromDB, decryptionKey);
+    // Attempt AES-256-GCM with userId as AAD; fall back to no-AAD for legacy tokens
+    let rawBase64;
+    try {
+        rawBase64 = (0, crypto_1.decryptAesGcm)(encryptedTokenFromDB, decryptionKey, { associatedData: userId });
+    }
+    catch {
+        rawBase64 = (0, crypto_1.decryptAesGcm)(encryptedTokenFromDB, decryptionKey);
+    }
     const embedding = unpackEmbedding(rawBase64);
     return {
         id: userId,
