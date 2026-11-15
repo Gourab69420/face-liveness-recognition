@@ -1,6 +1,10 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.NativeFaceLivenessView = exports.NativeFaceLivenessModule = void 0;
+const react_1 = __importDefault(require("react"));
 const react_native_1 = require("react-native");
 const expo_modules_core_1 = require("expo-modules-core");
 const random_1 = require("./crypto/random");
@@ -67,5 +71,8 @@ exports.NativeFaceLivenessModule = nativeModule ?? {
         return false;
     },
 };
-exports.NativeFaceLivenessView = nativeView;
+// Fallback: Expo Go, iOS, or Web environments where nativeView is null.
+// Rendering a null component in React causes a fatal crash, so we provide a safe View fallback.
+const FallbackView = (props) => react_1.default.createElement(react_native_1.View, props);
+exports.NativeFaceLivenessView = nativeView ?? FallbackView;
 //# sourceMappingURL=NativeExpoFaceLiveness.js.map

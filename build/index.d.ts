@@ -12,5 +12,6 @@ export { useFaceLiveness, UseFaceLivenessOptions, UseFaceLivenessReturn } from '
 export { NativeFaceLivenessModule, NativeFaceLivenessView, NativeKeyMetadata, } from './NativeExpoFaceLiveness';
 export declare function requestCameraPermissionsAsync(): Promise<import("./types").CameraPermissionResponse>;
 export declare function getCameraPermissionsAsync(): Promise<import("./types").CameraPermissionResponse>;
+export declare function isFaceLivenessAvailable(): boolean;
 export declare function isLivenessDetectionAvailable(): boolean;
 //# sourceMappingURL=index.d.ts.map

@@ -15,6 +15,7 @@ import {
 } from './NativeExpoFaceLiveness';
 import { FaceLivenessOverlay } from './FaceLivenessOverlay';
 import { getRandomChallenge } from './challenges';
+import { packEmbedding } from './auth';
 
 export const FaceLivenessCamera: React.FC<FaceLivenessCameraProps> = ({
   active = true,
@@ -108,7 +109,14 @@ export const FaceLivenessCamera: React.FC<FaceLivenessCameraProps> = ({
 
   const handleResult = useCallback(
     (event: { nativeEvent: LivenessResult }) => {
-      const data = event.nativeEvent;
+      const data = { ...event.nativeEvent };
+      if (data.embedding && Array.isArray(data.embedding) && data.embedding.length === 192 && !data.packedEmbedding) {
+        try {
+          data.packedEmbedding = packEmbedding(data.embedding);
+        } catch (e) {
+          console.warn('[expo-face-liveness] Failed to pack face embedding:', e);
+        }
+      }
       onResult?.(data);
     },
     [onResult]
@@ -133,14 +141,21 @@ export const FaceLivenessCamera: React.FC<FaceLivenessCameraProps> = ({
     );
   }
 
-  if (!NativeFaceLivenessView) {
+  if (!NativeFaceLivenessModule.isAvailable()) {
     return (
       <View style={[styles.fallbackContainer, style]}>
-        <Text style={styles.fallbackTitle}>Native Module Missing</Text>
+        <Text style={styles.fallbackTitle}>Native Camera Required</Text>
         <Text style={styles.fallbackSubtitle}>
-          expo-face-liveness requires an Android development build with CameraX and TFLite linked.
-          It does not run inside Expo Go.
+          Biometric face verification requires an Android Development Build (npx expo run:android / EAS Build), not standard Expo Go.
         </Text>
+        {onError && (
+          <TouchableOpacity
+            style={styles.permissionButton}
+            onPress={() => onError({ code: 'MODULE_UNAVAILABLE', message: 'Native module unavailable in this environment' })}
+          >
+            <Text style={styles.permissionButtonText}>Dismiss</Text>
+          </TouchableOpacity>
+        )}
       </View>
     );
   }
@@ -177,7 +192,7 @@ export const FaceLivenessCamera: React.FC<FaceLivenessCameraProps> = ({
     cfg.challenges ??
     (randomizeChallenges
       ? [sessionChallenge]
-      : mode === 'liveness_and_recognition'
+      : (mode === 'liveness_and_recognition' || mode === 'enrollment')
       ? ['smile']
       : []);
   const enrolledProfiles = directProfiles ?? cfg.enrolledProfiles ?? [];

@@ -1,4 +1,5 @@
-import { Platform } from 'react-native';
+import React from 'react';
+import { Platform, View } from 'react-native';
 import { requireNativeModule, requireNativeViewManager } from 'expo-modules-core';
 import type { CameraPermissionResponse } from './types';
 import { registerEntropyProvider, hexToBytes, decodeBase64ToBytes } from './crypto/random';
@@ -94,4 +95,8 @@ export const NativeFaceLivenessModule: ExpoFaceLivenessNativeModule = nativeModu
   },
 };
 
-export const NativeFaceLivenessView = nativeView;
+// Fallback: Expo Go, iOS, or Web environments where nativeView is null.
+// Rendering a null component in React causes a fatal crash, so we provide a safe View fallback.
+const FallbackView: React.FC<any> = (props) => React.createElement(View, props);
+
+export const NativeFaceLivenessView: React.ComponentType<any> = nativeView ?? FallbackView;

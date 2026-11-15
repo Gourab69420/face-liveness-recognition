@@ -18,6 +18,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.NativeFaceLivenessView = exports.NativeFaceLivenessModule = exports.useFaceLiveness = exports.FaceLivenessOverlay = exports.FaceLivenessCamera = void 0;
 exports.requestCameraPermissionsAsync = requestCameraPermissionsAsync;
 exports.getCameraPermissionsAsync = getCameraPermissionsAsync;
+exports.isFaceLivenessAvailable = isFaceLivenessAvailable;
 exports.isLivenessDetectionAvailable = isLivenessDetectionAvailable;
 __exportStar(require("./types"), exports);
 __exportStar(require("./model"), exports);
@@ -43,7 +44,10 @@ async function requestCameraPermissionsAsync() {
 async function getCameraPermissionsAsync() {
     return NativeExpoFaceLiveness_2.NativeFaceLivenessModule.getCameraPermissionsAsync();
 }
+function isFaceLivenessAvailable() {
+    return typeof NativeExpoFaceLiveness_2.NativeFaceLivenessModule?.isAvailable === 'function' && NativeExpoFaceLiveness_2.NativeFaceLivenessModule.isAvailable();
+}
 function isLivenessDetectionAvailable() {
-    return NativeExpoFaceLiveness_2.NativeFaceLivenessModule.isAvailable();
+    return isFaceLivenessAvailable();
 }
 //# sourceMappingURL=index.js.map

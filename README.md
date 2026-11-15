@@ -311,6 +311,20 @@ The camera view includes a built-in futuristic translucent hologram that guides 
 />
 ```
 
+### Initial Face Enrollment (`mode="enrollment"`)
+To register a new user:
+```tsx
+<FaceLivenessCamera
+  mode="enrollment"
+  onResult={(res) => {
+    if (res.status === 'live' && res.packedEmbedding) {
+      // Send res.packedEmbedding (Base64 string) to backend for storage
+      api.registerBiometrics({ userId: 'user_123', packedEmbedding: res.packedEmbedding });
+    }
+  }}
+/>
+```
+
 ### Headless / Custom UI Mode
 To use your own company branding, set `showOverlay={false}` and place your own React Native components inside `<FaceLivenessCamera>`:
 
@@ -328,11 +342,32 @@ To use your own company branding, set `showOverlay={false}` and place your own R
 
 ---
 
+## Python / FastAPI Server Verification (Protocol v2.0)
+
+A reference verification module is provided in [`python/verifier.py`](python/verifier.py):
+
+```python
+from verifier import verify_biometric_proof, unpack_face_embedding
+
+# 1. Verify ECDSA signature against Android Keystore public key
+is_valid = verify_biometric_proof(proof_dict, client_public_key_b64)
+
+# 2. Unpack Base64 packed face embeddings
+floats_192d = unpack_face_embedding(proof_dict["packedEmbedding"])
+```
+
+Install requirements:
+```bash
+pip install cryptography
+```
+
+---
+
 ## Camera Props & Configuration
 
 | Prop | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
-| `mode` | `'liveness_only' \| 'recognition_only' \| 'both'` | `'both'` | Operational scanning mode. |
+| `mode` | `'liveness_and_recognition' \| 'recognition_only' \| 'liveness_only' \| 'enrollment'` | `'liveness_and_recognition'` | Operational scanning mode. |
 | `securityLevel` | `'relaxed' \| 'balanced' \| 'strict'` | `'balanced'` | Pre-configured sensitivity profile. |
 | `recognitionThreshold` | `number` | `0.72` | Minimum cosine similarity ($0.0 - 1.0$) to match face. |
 | `liveThreshold` | `number` | `0.58` | Anti-spoof neural network confidence threshold. |

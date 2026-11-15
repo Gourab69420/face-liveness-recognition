@@ -28,6 +28,10 @@ export async function getCameraPermissionsAsync() {
   return NativeFaceLivenessModule.getCameraPermissionsAsync();
 }
 
+export function isFaceLivenessAvailable(): boolean {
+  return typeof NativeFaceLivenessModule?.isAvailable === 'function' && NativeFaceLivenessModule.isAvailable();
+}
+
 export function isLivenessDetectionAvailable(): boolean {
-  return NativeFaceLivenessModule.isAvailable();
+  return isFaceLivenessAvailable();
 }

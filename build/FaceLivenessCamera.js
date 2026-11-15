@@ -39,6 +39,7 @@ const react_native_1 = require("react-native");
 const NativeExpoFaceLiveness_1 = require("./NativeExpoFaceLiveness");
 const FaceLivenessOverlay_1 = require("./FaceLivenessOverlay");
 const challenges_1 = require("./challenges");
+const auth_1 = require("./auth");
 const FaceLivenessCamera = ({ active = true, config = {}, challenges: directChallenges, enrolledProfiles: directProfiles, mode: directMode, recognitionThreshold: directRecThreshold, securityLevel: directSecLevel, onFaceStatusChanged, onProgress, onResult, onError, onPermissionDenied, showOverlay = true, isVerified = false, instructionText, randomizeChallenges = false, hologramOpacity = 0.38, showHologram = true, showTopStatus = false, children, style, }) => {
     const [permission, setPermission] = (0, react_1.useState)(null);
     const [currentFaceStatus, setCurrentFaceStatus] = (0, react_1.useState)({
@@ -98,7 +99,15 @@ const FaceLivenessCamera = ({ active = true, config = {}, challenges: directChal
         onProgress?.(data);
     }, [onProgress]);
     const handleResult = (0, react_1.useCallback)((event) => {
-        const data = event.nativeEvent;
+        const data = { ...event.nativeEvent };
+        if (data.embedding && Array.isArray(data.embedding) && data.embedding.length === 192 && !data.packedEmbedding) {
+            try {
+                data.packedEmbedding = (0, auth_1.packEmbedding)(data.embedding);
+            }
+            catch (e) {
+                console.warn('[expo-face-liveness] Failed to pack face embedding:', e);
+            }
+        }
         onResult?.(data);
     }, [onResult]);
     const handleError = (0, react_1.useCallback)((event) => {
@@ -110,10 +119,12 @@ const FaceLivenessCamera = ({ active = true, config = {}, challenges: directChal
             react_1.default.createElement(react_native_1.Text, { style: styles.fallbackTitle }, "Platform Unsupported"),
             react_1.default.createElement(react_native_1.Text, { style: styles.fallbackSubtitle }, "The MVP version of expo-face-liveness currently targets Android on-device execution.")));
     }
-    if (!NativeExpoFaceLiveness_1.NativeFaceLivenessView) {
+    if (!NativeExpoFaceLiveness_1.NativeFaceLivenessModule.isAvailable()) {
         return (react_1.default.createElement(react_native_1.View, { style: [styles.fallbackContainer, style] },
-            react_1.default.createElement(react_native_1.Text, { style: styles.fallbackTitle }, "Native Module Missing"),
-            react_1.default.createElement(react_native_1.Text, { style: styles.fallbackSubtitle }, "expo-face-liveness requires an Android development build with CameraX and TFLite linked. It does not run inside Expo Go.")));
+            react_1.default.createElement(react_native_1.Text, { style: styles.fallbackTitle }, "Native Camera Required"),
+            react_1.default.createElement(react_native_1.Text, { style: styles.fallbackSubtitle }, "Biometric face verification requires an Android Development Build (npx expo run:android / EAS Build), not standard Expo Go."),
+            onError && (react_1.default.createElement(react_native_1.TouchableOpacity, { style: styles.permissionButton, onPress: () => onError({ code: 'MODULE_UNAVAILABLE', message: 'Native module unavailable in this environment' }) },
+                react_1.default.createElement(react_native_1.Text, { style: styles.permissionButtonText }, "Dismiss")))));
     }
     if (permission === null) {
         return (react_1.default.createElement(react_native_1.View, { style: [styles.fallbackContainer, style] },
@@ -133,7 +144,7 @@ const FaceLivenessCamera = ({ active = true, config = {}, challenges: directChal
         cfg.challenges ??
         (randomizeChallenges
             ? [sessionChallenge]
-            : mode === 'liveness_and_recognition'
+            : (mode === 'liveness_and_recognition' || mode === 'enrollment')
                 ? ['smile']
                 : []);
     const enrolledProfiles = directProfiles ?? cfg.enrolledProfiles ?? [];

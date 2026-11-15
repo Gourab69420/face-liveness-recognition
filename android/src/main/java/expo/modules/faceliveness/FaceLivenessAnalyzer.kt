@@ -48,7 +48,7 @@ class FaceLivenessAnalyzer(
     // Face Recognition state
     var enrolledProfiles: List<EnrolledProfile> = emptyList()
     var matchThreshold: Float = 0.74f
-    var mode: String = "liveness_and_recognition" // "liveness_and_recognition", "recognition_only", "liveness_only"
+    var mode: String = "liveness_and_recognition" // "liveness_and_recognition", "recognition_only", "liveness_only", "enrollment"
     private var latestEmbedding: FloatArray? = null
 
     init {
@@ -323,9 +323,12 @@ class FaceLivenessAnalyzer(
             latestEmbedding
         }
 
-        // Perform face recognition matching if embedding was extracted
+        // Perform face recognition matching if embedding was extracted (skip matching in enrollment or liveness_only mode)
         var recognitionResult: RecognitionResult? = null
-        if (masterEmbedding != null && recognizer != null) {
+        val isEnrollment = mode == "enrollment"
+        val isLivenessOnly = mode == "liveness_only"
+
+        if (!isEnrollment && !isLivenessOnly && masterEmbedding != null && recognizer != null) {
             recognitionResult = recognizer.match(masterEmbedding, enrolledProfiles, matchThreshold)
             Log.i(TAG, "Face match evaluated against ${enrolledProfiles.size} profiles: isMatch=${recognitionResult.isMatch}, similarity=${recognitionResult.similarity}, threshold=$matchThreshold")
         }
@@ -343,6 +346,28 @@ class FaceLivenessAnalyzer(
                 } else {
                     errorCode = "EMBEDDING_FAILED"
                     ClassificationResult.INCONCLUSIVE
+                }
+            }
+
+            // In enrollment mode: must pass challenges and passive anti-spoofing, and embedding must be extracted
+            isEnrollment -> {
+                when {
+                    !challengePassed -> {
+                        errorCode = "CHALLENGE_INCOMPLETE"
+                        Log.w(TAG, "Enrollment: Active kinetic challenge was NOT passed")
+                        ClassificationResult.INCONCLUSIVE
+                    }
+                    meanScore <= spoofThreshold -> {
+                        errorCode = "SPOOF_DETECTED"
+                        Log.w(TAG, "Enrollment: Passive anti-spoofing failed: score=$meanScore <= threshold=$spoofThreshold")
+                        ClassificationResult.SPOOF
+                    }
+                    masterEmbedding == null || masterEmbedding.isEmpty() -> {
+                        errorCode = "EMBEDDING_FAILED"
+                        Log.w(TAG, "Enrollment: Failed to extract face embedding")
+                        ClassificationResult.INCONCLUSIVE
+                    }
+                    else -> ClassificationResult.LIVE
                 }
             }
 

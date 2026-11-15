@@ -1,3 +1,4 @@
+import React from 'react';
 import type { CameraPermissionResponse } from './types';
 export interface NativeKeyMetadata {
     alias: string;
@@ -19,5 +20,5 @@ export interface ExpoFaceLivenessNativeModule {
     getRandomBytesHex?(byteLength: number): string;
 }
 export declare const NativeFaceLivenessModule: ExpoFaceLivenessNativeModule;
-export declare const NativeFaceLivenessView: any;
+export declare const NativeFaceLivenessView: React.ComponentType<any>;
 //# sourceMappingURL=NativeExpoFaceLiveness.d.ts.map

@@ -93,6 +93,10 @@ export interface LivenessResult {
      */
     embedding?: number[];
     /**
+     * Packed 768-byte Base64 representation of the 192-dimensional embedding (float32 array).
+     */
+    packedEmbedding?: string;
+    /**
      * Whether the face matched any of the enrolled profiles.
      */
     isMatch?: boolean;
@@ -122,8 +126,10 @@ export interface EnrolledProfile {
  * - 'liveness_and_recognition': Requires physical liveness validation and matches face against enrolled profiles.
  * - 'recognition_only': Direct face embedding extraction and recognition.
  * - 'liveness_only': Anti-spoofing only without profile matching.
+ * - 'enrollment': Anti-spoofing and active kinetic challenge to extract enrollment embeddings without matching.
  */
-export type LivenessMode = 'liveness_and_recognition' | 'recognition_only' | 'liveness_only';
+export type LivenessMode = 'liveness_and_recognition' | 'recognition_only' | 'liveness_only' | 'enrollment';
+export type CameraMode = LivenessMode;
 /**
  * Error structure returned when camera or inference operations fail.
  */
