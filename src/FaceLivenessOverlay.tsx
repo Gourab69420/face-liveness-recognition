@@ -507,20 +507,22 @@ export const FaceLivenessOverlay: React.FC<FaceLivenessOverlayProps> = ({
 };
 
 const { width } = Dimensions.get('window');
-const ovalWidth = Math.min(width * 0.74, 290);
-const ovalHeight = ovalWidth * 1.34;
+const ovalWidth = Math.min(width * 0.70, 260);
+const ovalHeight = Math.min(ovalWidth * 1.30, 338);
 
 const styles = StyleSheet.create({
   container: {
     ...StyleSheet.absoluteFillObject,
-    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 24,
-    paddingHorizontal: 16,
+    justifyContent: 'center',
   },
   topContainer: {
+    position: 'absolute',
+    top: 20,
+    left: 16,
+    right: 16,
     alignItems: 'center',
-    marginTop: 8,
+    zIndex: 10,
   },
   topHudBadge: {
     flexDirection: 'row',
@@ -547,9 +549,10 @@ const styles = StyleSheet.create({
 
   // Center Reticle & Hologram Overlay
   centerContainer: {
-    flex: 1,
+    ...StyleSheet.absoluteFillObject,
     justifyContent: 'center',
     alignItems: 'center',
+    zIndex: 5,
   },
   faceOval: {
     width: ovalWidth,
@@ -692,9 +695,12 @@ const styles = StyleSheet.create({
 
   // Bottom Floating Instruction Card
   bottomContainer: {
-    width: '100%',
+    position: 'absolute',
+    bottom: 24,
+    left: 16,
+    right: 16,
     alignItems: 'center',
-    marginBottom: 8,
+    zIndex: 10,
   },
   instructionCard: {
     width: '100%',
